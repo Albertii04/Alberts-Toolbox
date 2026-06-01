@@ -1,0 +1,25 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+out/
+.turbo/
+*.tsbuildinfo
+
+# electron packaging
+apps/shell/release/
+apps/shell/out/
+
+# os / editor
+.DS_Store
+*.log
+.vscode/*
+!.vscode/extensions.json
+.idea/
+
+# local tool installs (runtime-installed tools live in userData, never committed)
+.toolbox-cache/
+
+# local agent / editor config (never committed)
+.claude/

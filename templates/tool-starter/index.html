@@ -1,0 +1,35 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Hello Tool</title>
+    <style>
+      :root { color-scheme: dark; }
+      body {
+        margin: 0;
+        height: 100vh;
+        display: grid;
+        place-items: center;
+        font-family: 'Inter', system-ui, sans-serif;
+        background: #04060b;
+        color: #cbd5e1;
+      }
+      h1 { color: #fff; font-weight: 600; letter-spacing: -0.02em; }
+      code { color: #94a8ca; }
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>Hello from a Toolbox tool</h1>
+      <p>Edit <code>index.html</code>. This tool declared no capabilities, so it is fully sandboxed.</p>
+      <p>Native features? Add them to <code>capabilities</code> in <code>toolbox.json</code>, then call <code>window.toolbox</code>.</p>
+      <script type="module">
+        // Pure-web tools can ignore window.toolbox entirely.
+        if (window.toolbox) {
+          document.title = `Hello — running as ${window.toolbox.meta.id}`
+        }
+      </script>
+    </main>
+  </body>
+</html>

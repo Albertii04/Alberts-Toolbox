@@ -1,0 +1,131 @@
+<script setup lang="ts">
+import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
+import gsap from 'gsap'
+import { slides as manifest } from './slidesManifest'
+import { useDeckSync } from './composables/useDeckSync'
+
+const { idx } = useDeckSync(0)
+const displayIdx = ref(idx.value)
+const current = computed(() => manifest[displayIdx.value].component)
+const total = computed(() => manifest.length)
+const isCover = computed(() => displayIdx.value === 0)
+const isClose = computed(() => displayIdx.value === total.value - 1)
+
+const slideHostEl = ref<HTMLElement | null>(null)
+const slideRef = ref<any>(null)
+let transitioning = false
+
+function paddedNum(n: number) {
+  return String(n).padStart(2, '0')
+}
+
+async function transitionTo(newIdx: number, dir: 'next' | 'prev') {
+  if (transitioning) return
+  if (newIdx === displayIdx.value) return
+  transitioning = true
+  const host = slideHostEl.value
+  if (!host) {
+    displayIdx.value = newIdx
+    transitioning = false
+    return
+  }
+  // Long, soft exit
+  await gsap.to(host, {
+    opacity: 0,
+    duration: 0.55,
+    ease: 'power2.inOut',
+  })
+  displayIdx.value = newIdx
+  await nextTick()
+  if (slideRef.value) {
+    if (dir === 'next' && typeof slideRef.value.resetForward === 'function') slideRef.value.resetForward()
+    if (dir === 'prev' && typeof slideRef.value.resetBackward === 'function') slideRef.value.resetBackward()
+  }
+  // Host appears invisible. No translate on host — all motion lives in reveals.
+  gsap.set(host, { opacity: 0, y: 0 })
+  gsap.to(host, {
+    opacity: 1,
+    duration: 1.2,
+    ease: 'power1.out',
+  })
+  // Reveals start AFTER host has started fading in — feels layered, not abrupt
+  const reveals = host.querySelectorAll('[data-reveal]')
+  if (reveals.length) {
+    gsap.fromTo(reveals,
+      { opacity: 0, y: 30 },
+      { opacity: 1, y: 0, duration: 1.0, stagger: 0.14, ease: 'expo.out', delay: 0.4 }
+    )
+  }
+  setTimeout(() => { transitioning = false }, 700)
+}
+
+watch(idx, (newV, oldV) => {
+  if (newV === displayIdx.value) return
+  const dir: 'next' | 'prev' = newV > oldV ? 'next' : 'prev'
+  transitionTo(newV, dir)
+})
+
+function onKey(e: KeyboardEvent) {
+  // Navigation locked — only presenter UI controls slides.
+  // Keep F for fullscreen + Esc as utility for the projector machine.
+  switch (e.key) {
+    case 'f':
+    case 'F':
+      if (!document.fullscreenElement) document.documentElement.requestFullscreen()
+      else document.exitFullscreen()
+      break
+    case 'Escape':
+      if (document.fullscreenElement) document.exitFullscreen()
+      break
+  }
+}
+
+function onStageClick(_e: MouseEvent) {
+  // Click-to-advance disabled — control only from presenter UI
+}
+
+onMounted(() => {
+  document.addEventListener('keydown', onKey)
+  nextTick(() => {
+    const host = slideHostEl.value
+    if (!host) return
+    gsap.set(host, { opacity: 1, y: 0 })
+    const reveals = host.querySelectorAll('[data-reveal]')
+    if (reveals.length) {
+      gsap.fromTo(reveals,
+        { opacity: 0, yPercent: -120 },
+        { opacity: 1, yPercent: 0, duration: 0.85, stagger: 0.09, ease: 'back.out(0.6)', delay: 0.2 }
+      )
+    }
+  })
+})
+onUnmounted(() => document.removeEventListener('keydown', onKey))
+
+watch(idx, (v) => {
+  history.replaceState(null, '', `#${v + 1}`)
+})
+
+const hash = parseInt(location.hash.replace('#', ''), 10)
+if (!isNaN(hash) && hash >= 1 && hash <= manifest.length) idx.value = hash - 1
+</script>
+
+<template>
+  <div class="deck" @click="onStageClick">
+    <div class="progress">
+      <div class="bar" :style="{ width: ((displayIdx + 1) / total * 100) + '%' }"></div>
+    </div>
+
+    <div class="stage">
+      <div class="slide-host" ref="slideHostEl" :key="displayIdx">
+        <component :is="current" ref="slideRef" />
+      </div>
+
+      <div v-show="!isCover && !isClose" class="wordmark">
+        <span class="wm-primary">PRIMLUX</span><span class="wm-slash">/</span><span class="wm-suffix">CONSULTING</span>
+      </div>
+      <div v-show="!isCover" class="counter">
+        <span>{{ paddedNum(displayIdx + 1) }}</span><span class="sep">/</span><span>{{ paddedNum(total) }}</span>
+      </div>
+    </div>
+  </div>
+</template>

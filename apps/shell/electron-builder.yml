@@ -1,0 +1,27 @@
+appId: com.albertmarimon.toolbox
+productName: Alberts Toolbox
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+# Builtin tools ship as resources/tools/<id>/ (built dist + manifest + icon).
+extraResources:
+  - from: ../../tools
+    to: tools
+    filter:
+      - '**/toolbox.json'
+      - '**/icon.svg'
+      - '**/dist/**'
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.productivity
+win:
+  target:
+    - nsis
+linux:
+  target:
+    - AppImage
+  category: Utility

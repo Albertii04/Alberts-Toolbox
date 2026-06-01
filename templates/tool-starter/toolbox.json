@@ -1,0 +1,10 @@
+{
+  "id": "you.hello",
+  "name": "Hello Tool",
+  "version": "0.1.0",
+  "icon": "icon.svg",
+  "entry": "index.html",
+  "description": "Minimal build-free tool — just a manifest and an HTML file.",
+  "author": "you",
+  "capabilities": []
+}
