@@ -174,11 +174,129 @@ button {
 
 /* ---- content ---- */
 .content {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.home,
+.market {
+  flex: 1;
   overflow-y: auto;
+}
+.pad {
   padding: 48px clamp(28px, 5vw, 64px);
 }
 .content-head {
   margin-bottom: 28px;
+}
+
+/* ---- open-tool chrome ---- */
+.tool-topbar {
+  flex: 0 0 40px;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 8px 0 16px;
+  border-bottom: 1px solid var(--rule);
+  background: rgba(4, 6, 11, 0.7);
+  -webkit-app-region: drag;
+}
+.tt-name {
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--slate-100);
+  letter-spacing: 0.01em;
+}
+.tt-actions {
+  display: flex;
+  gap: 2px;
+  -webkit-app-region: no-drag;
+}
+.tt-btn {
+  width: 28px;
+  height: 28px;
+  display: grid;
+  place-items: center;
+  border-radius: 3px;
+  font-size: 14px;
+  color: var(--slate-400);
+}
+.tt-btn:hover {
+  background: var(--rule-soft);
+  color: var(--slate-100);
+}
+.tool-stage {
+  flex: 1;
+  position: relative;
+}
+.tool-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  text-align: center;
+  padding: 24px;
+}
+.spinner {
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--rule);
+  border-top-color: var(--brand-300);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.ov-text {
+  font-size: 13px;
+  color: var(--slate-400);
+}
+.ov-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--slate-100);
+}
+.ov-btn {
+  margin-top: 4px;
+  padding: 8px 18px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  font-size: 12px;
+  color: var(--slate-100);
+}
+.ov-btn:hover {
+  border-color: rgba(148, 168, 202, 0.5);
+  background: rgba(148, 168, 202, 0.08);
+}
+
+/* ---- empty state ---- */
+.empty {
+  max-width: 440px;
+  border: 1px dashed var(--rule);
+  border-radius: 3px;
+  padding: 28px;
+}
+.empty-title {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--slate-100);
+  margin-bottom: 8px;
+}
+.empty-text {
+  font-size: 13px;
+  line-height: 1.6;
+  color: var(--slate-400);
+}
+.empty-text code {
+  color: var(--brand-300);
+  font-size: 12px;
 }
 .eyebrow {
   font-size: 11px;

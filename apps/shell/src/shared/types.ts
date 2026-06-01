@@ -13,14 +13,24 @@ export interface ToolSummary {
   source: 'builtin' | 'installed'
 }
 
+/** Lifecycle of the active tool's view. */
+export type ToolStatus = 'loading' | 'ready' | 'crashed'
+export interface ToolStatusEvent {
+  id: string
+  status: ToolStatus
+}
+
 /** window.shellApi — exposed to the shell renderer only (not to tools). */
 export interface ShellApi {
   listTools(): Promise<ToolSummary[]>
   openTool(id: string): Promise<void>
+  reloadActiveTool(): Promise<void>
   closeActiveTool(): Promise<void>
   getActiveToolId(): Promise<string | null>
   /** Subscribe to tool-list changes (install/uninstall). Returns an unsubscribe fn. */
   onToolsChanged(cb: () => void): () => void
+  /** Subscribe to active-tool lifecycle (loading/ready/crashed). Returns unsubscribe. */
+  onToolStatus(cb: (e: ToolStatusEvent) => void): () => void
 }
 
 declare global {
