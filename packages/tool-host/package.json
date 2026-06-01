@@ -22,7 +22,7 @@
     "@toolbox/sdk": "workspace:*"
   },
   "devDependencies": {
-    "@types/node": "^20.11.0",
+    "@types/node": "^25.9.1",
     "typescript": "~5.7.2"
   }
 }
