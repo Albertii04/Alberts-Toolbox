@@ -41,6 +41,7 @@ async function createWindow(): Promise<void> {
 function installShellIpc(): void {
   ipcMain.handle('shell:listTools', () => manager.summaries())
   ipcMain.handle('shell:openTool', (_e, id: string) => manager.open(id))
+  ipcMain.handle('shell:reloadActiveTool', () => manager.reloadActive())
   ipcMain.handle('shell:closeActiveTool', () => manager.closeActive())
   ipcMain.handle('shell:getActiveToolId', () => manager.getActiveToolId())
 }
