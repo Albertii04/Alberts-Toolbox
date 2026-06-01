@@ -6,9 +6,8 @@ import type { TabsState, ToolStatus, ToolSummary } from '../shared/types.js'
 import { builtinToolsDir, installedToolsDir } from './paths.js'
 import { registerToolView, unregisterToolView } from './broker.js'
 
-/** Width of the shell's left sidebar (matches the renderer's w-64). */
-const SIDEBAR_W = 256
-/** Height of the tab bar; tool views sit below it. */
+/** Height of the tab bar; tool views sit below it and span the full width
+ *  (the launcher sidebar is hidden while a tool is open). */
 const TABBAR_H = 40
 
 function toolPreloadPath(): string {
@@ -195,17 +194,12 @@ export class ToolManager {
     void wc.loadURL(tool.entryUrl)
   }
 
-  /** Reposition the active tool view into the content area, below the tab bar. */
+  /** Position the active tool view full-width below the tab bar. */
   private layout(): void {
     if (!this.win || !this.activeId) return
     const view = this.views.get(this.activeId)
     if (!view) return
     const { width, height } = this.win.getContentBounds()
-    view.setBounds({
-      x: SIDEBAR_W,
-      y: TABBAR_H,
-      width: Math.max(0, width - SIDEBAR_W),
-      height: Math.max(0, height - TABBAR_H),
-    })
+    view.setBounds({ x: 0, y: TABBAR_H, width, height: Math.max(0, height - TABBAR_H) })
   }
 }
