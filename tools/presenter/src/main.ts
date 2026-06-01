@@ -5,6 +5,7 @@ import { getPresentation } from './presentations'
 import type { Presentation } from './engine/types'
 import Home from './Home.vue'
 import Editor from './Editor.vue'
+import LivePreview from './LivePreview.vue'
 import { loadDoc } from './documents/store'
 import { documentToPresentation } from './documents/render'
 
@@ -23,6 +24,14 @@ function mountDeck(presentation: Presentation): void {
 //   ?pres=<id> → a bundled presentation (e.g. the Concep example)
 //   otherwise  → the Home dashboard
 async function boot(): Promise<void> {
+  // Live HMR preview of a code presentation (authoring host). Skipped inside the
+  // dev-server iframe itself (?pres present) to avoid recursion.
+  const previewId = params.get('preview')
+  if (previewId) {
+    document.title = 'Vista en vivo'
+    createApp(LivePreview, { presId: previewId }).mount('#app')
+    return
+  }
   const editId = params.get('edit')
   if (editId) {
     const doc = await loadDoc(editId)

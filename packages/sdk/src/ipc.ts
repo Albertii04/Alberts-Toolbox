@@ -17,6 +17,7 @@ export const IPC = {
   storageRemove: 'toolbox:storage.remove',
   netFetch: 'toolbox:net.fetch',
   notify: 'toolbox:notifications.show',
+  authoringPreviewUrl: 'toolbox:authoring.previewUrl',
 } as const;
 
 /** Error thrown across IPC when the broker denies an ungranted capability. */
