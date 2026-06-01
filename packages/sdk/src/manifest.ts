@@ -18,6 +18,7 @@ export const CAPABILITY_NAMES = [
   'net', // outbound HTTP — REQUIRES an allowlist of domains
   'notifications', // OS notifications
   'gpu', // enable hardware acceleration for this tool's view
+  'authoring', // PRIVILEGED: run an authoring dev server + AI code editing. First-party only.
 ] as const;
 
 export type CapabilityName = (typeof CAPABILITY_NAMES)[number];
