@@ -1,0 +1,118 @@
+/* Engine base: design tokens, reset, and the audience deck chrome.
+   Presentation-specific slide styling lives in each presentation's own CSS.
+   A presentation can override any token via theme.vars. */
+:root {
+  --brand-50:#edf0f7; --brand-100:#dce2ef; --brand-200:#bcc8de;
+  --brand-300:#94a8ca; --brand-400:#6f86b4; --brand-500:#556f9e;
+  --brand-600:#425987; --brand-700:#36486e; --brand-800:#2f3e5f;
+  --brand-900:#283650;
+
+  --slate-100:#f1f5f9; --slate-200:#e2e8f0; --slate-300:#cbd5e1;
+  --slate-400:#94a3b8; --slate-500:#64748b; --slate-700:#334155;
+  --slate-900:#0f172a; --slate-950:#04060b;
+
+  --fg-primary:#ffffff;
+  --fg-secondary:var(--slate-100);
+  --fg-tertiary:var(--slate-300);
+  --fg-muted:var(--slate-400);
+  --fg-faint:var(--slate-500);
+
+  --rule-strong:rgba(255,255,255,0.20);
+  --rule:rgba(255,255,255,0.15);
+  --rule-soft:rgba(255,255,255,0.10);
+
+  --font: "Inter","Helvetica Neue",Arial,sans-serif;
+  --track-eyebrow:0.18em;
+  --track-tight:-0.01em;
+
+  --ease:cubic-bezier(0.4,0,0.2,1);
+
+  --bg-canvas:
+    radial-gradient(920px 420px at 12% 4%, rgba(67,87,128,0.20), transparent 64%),
+    radial-gradient(860px 460px at 84% 30%, rgba(52,70,108,0.16), transparent 68%),
+    linear-gradient(180deg, #07090e 0%, #05070b 44%, #04060b 100%);
+
+  --pad-x: clamp(2.5rem, 6vw, 6rem);
+  --pad-y: clamp(2rem, 5vw, 4.5rem);
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+
+html, body, #app {
+  height: 100%;
+  width: 100%;
+  background: var(--slate-950);
+  color: var(--fg-tertiary);
+  font-family: var(--font);
+  font-size: 16px;
+  line-height: 1.6;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+  overflow: hidden;
+}
+body { background: var(--bg-canvas); background-color: var(--slate-950); }
+button { font: inherit; color: inherit; background: transparent; border: 0; cursor: pointer; }
+img { display: block; max-width: 100%; }
+
+/* ---- audience deck chrome ---- */
+.deck {
+  position: fixed; inset: 0;
+  display: grid; place-items: center;
+  overflow: hidden;
+}
+.stage {
+  position: relative;
+  width: min(100vw, calc(100vh * 16 / 9));
+  height: min(100vh, calc(100vw * 9 / 16));
+  overflow: hidden;
+}
+.slide-host {
+  position: absolute; inset: 0;
+  padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) + 1.75rem);
+  display: flex;
+  flex-direction: column;
+}
+
+.wordmark {
+  position: absolute;
+  bottom: clamp(1.25rem, 2.2vw, 2rem);
+  left: clamp(1.25rem, 2.2vw, 2rem);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.14em;
+  color: var(--fg-primary);
+  opacity: 0.55;
+  pointer-events: none;
+  z-index: 10;
+}
+.wordmark .wm-primary { font-weight: 600; }
+.wordmark .wm-slash { color: var(--brand-300); margin: 0 0.4rem; }
+.wordmark .wm-suffix { font-weight: 300; color: var(--slate-300); }
+
+.counter {
+  position: absolute;
+  bottom: clamp(1.25rem, 2.2vw, 2rem);
+  right: clamp(1.25rem, 2.2vw, 2rem);
+  font-size: 0.625rem;
+  color: var(--fg-muted);
+  letter-spacing: var(--track-eyebrow);
+  text-transform: uppercase;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  z-index: 10;
+}
+.counter .sep { color: var(--brand-300); margin: 0 0.35rem; }
+
+.progress {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 1px;
+  background: rgba(255,255,255,0.06);
+  z-index: 11;
+}
+.progress .bar {
+  height: 100%;
+  background: var(--brand-300);
+  width: 0%;
+  transition: width 700ms var(--ease);
+}
