@@ -48,6 +48,14 @@ type ChatEvent = { kind: 'assistant' | 'tool' | 'done' | 'error'; text: string }
 
 // Resume the Claude Code session per presentation so the chat keeps context.
 const sessionByPres = new Map<string, string>()
+// Running chat process per presentation, so it can be stopped.
+const chatProc = new Map<string, ChildProcess>()
+
+/** Stop the running AI editor turn for a presentation. */
+export function stopChat(presId: string): void {
+  chatProc.get(presId)?.kill()
+  chatProc.delete(presId)
+}
 
 /**
  * Drive a Claude Code session to edit a presentation folder. Spawns `claude -p`
@@ -78,6 +86,7 @@ export function sendChat(
     // Ensure ~/.local/bin (where `claude` lives) is on PATH.
     const env = { ...process.env, PATH: `${homedir()}/.local/bin:${process.env.PATH ?? ''}` }
     const child = spawn('claude', args, { cwd: folder, env, stdio: ['ignore', 'pipe', 'pipe'] })
+    chatProc.set(presId, child)
 
     let buf = ''
     child.stdout.on('data', (chunk: Buffer) => {
@@ -111,10 +120,15 @@ export function sendChat(
       }
     })
     child.on('error', (e) => {
+      chatProc.delete(presId)
       emit({ kind: 'error', text: e.message })
       resolveP()
     })
-    child.on('exit', () => resolveP())
+    child.on('exit', (code, signal) => {
+      chatProc.delete(presId)
+      if (signal) emit({ kind: 'error', text: 'Detenido.' })
+      resolveP()
+    })
   })
 }
 

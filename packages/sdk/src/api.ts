@@ -88,6 +88,8 @@ export interface ToolboxApi {
      *  it edits the folder's code. Resolves when the turn finishes. Stream
      *  progress via onChat. */
     sendChat(presId: string, message: string): Promise<void>;
+    /** Stop the running AI editor turn for a presentation. */
+    stopChat(presId: string): Promise<void>;
     /** Subscribe to AI editor chat events. Returns an unsubscribe fn. */
     onChat(cb: (e: AuthoringChatEvent) => void): () => void;
   };

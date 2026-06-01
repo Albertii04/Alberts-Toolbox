@@ -174,10 +174,12 @@ export class ToolManager {
     registerToolView(wc.id, tool.manifest, tool.source)
     wc.on('destroyed', () => unregisterToolView(wc.id))
 
-    // A tool may open its own windows (e.g. the Presenter audience view): allow
-    // same-origin file:// windows; route external URLs to the OS browser.
+    // A tool may open its own windows (e.g. the Presenter audience/console).
+    // Allow same-origin file:// and the local authoring dev server (so the
+    // presenter window stays in Electron and syncs); route other URLs to the OS.
     wc.setWindowOpenHandler(({ url }) => {
-      if (url.startsWith('file://')) return { action: 'allow' }
+      if (url.startsWith('file://') || /^https?:\/\/localhost(:\d+)?\//.test(url))
+        return { action: 'allow' }
       if (/^https?:/.test(url)) void shell.openExternal(url)
       return { action: 'deny' }
     })

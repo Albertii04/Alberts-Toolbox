@@ -21,6 +21,7 @@ export const IPC = {
   authoringCreate: 'toolbox:authoring.create',
   authoringDelete: 'toolbox:authoring.delete',
   authoringChat: 'toolbox:authoring.chat',
+  authoringStop: 'toolbox:authoring.stop',
 } as const;
 
 /** Event channel: main → tool, streaming AI editor chat progress. */
