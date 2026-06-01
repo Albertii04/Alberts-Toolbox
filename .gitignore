@@ -23,3 +23,6 @@ apps/shell/out/
 
 # local agent / editor config (never committed)
 .claude/
+
+# user-created presentation folders (live in the source tree during dev authoring)
+tools/presenter/src/presentations/u-*/

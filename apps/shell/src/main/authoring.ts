@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
+import { cp, rm, writeFile } from 'node:fs/promises'
 import { join, resolve } from 'node:path'
 import { app } from 'electron'
 
@@ -13,6 +14,31 @@ let starting: Promise<string> | null = null
 
 function presenterDir(): string {
   return resolve(app.getAppPath(), '../../tools/presenter')
+}
+function presentationsDir(): string {
+  return join(presenterDir(), 'src/presentations')
+}
+function templateDir(): string {
+  // Outside src/ so it isn't type-checked or globbed in place; copied into
+  // src/presentations/<id>/ where its relative imports (../../engine) resolve.
+  return join(presenterDir(), 'template')
+}
+
+const USER_PREFIX = 'u-'
+
+/** Scaffold a new code presentation folder from the template. */
+export async function createPresentation(name: string): Promise<{ id: string }> {
+  const id = USER_PREFIX + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+  const dest = join(presentationsDir(), id)
+  await cp(templateDir(), dest, { recursive: true })
+  await writeFile(join(dest, 'presentation.json'), JSON.stringify({ id, name }, null, 2), 'utf8')
+  return { id }
+}
+
+/** Remove a user presentation folder (only ids with the user prefix). */
+export async function deletePresentation(id: string): Promise<void> {
+  if (!id.startsWith(USER_PREFIX)) throw new Error('refusing to delete a non-user presentation')
+  await rm(join(presentationsDir(), id), { recursive: true, force: true })
 }
 
 export function getPreviewUrl(): Promise<string> {

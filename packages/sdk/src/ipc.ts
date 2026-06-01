@@ -18,6 +18,8 @@ export const IPC = {
   netFetch: 'toolbox:net.fetch',
   notify: 'toolbox:notifications.show',
   authoringPreviewUrl: 'toolbox:authoring.previewUrl',
+  authoringCreate: 'toolbox:authoring.create',
+  authoringDelete: 'toolbox:authoring.delete',
 } as const;
 
 /** Error thrown across IPC when the broker denies an ungranted capability. */
