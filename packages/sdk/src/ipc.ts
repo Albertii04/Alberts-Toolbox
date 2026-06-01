@@ -20,7 +20,11 @@ export const IPC = {
   authoringPreviewUrl: 'toolbox:authoring.previewUrl',
   authoringCreate: 'toolbox:authoring.create',
   authoringDelete: 'toolbox:authoring.delete',
+  authoringChat: 'toolbox:authoring.chat',
 } as const;
+
+/** Event channel: main → tool, streaming AI editor chat progress. */
+export const AUTHORING_CHAT_EVENT = 'toolbox:authoring.chatEvent';
 
 /** Error thrown across IPC when the broker denies an ungranted capability. */
 export const CAPABILITY_DENIED = 'TOOLBOX_CAPABILITY_DENIED';

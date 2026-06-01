@@ -1,5 +1,6 @@
 import { spawn, type ChildProcess } from 'node:child_process'
 import { cp, rm, writeFile } from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { app } from 'electron'
 
@@ -39,6 +40,82 @@ export async function createPresentation(name: string): Promise<{ id: string }> 
 export async function deletePresentation(id: string): Promise<void> {
   if (!id.startsWith(USER_PREFIX)) throw new Error('refusing to delete a non-user presentation')
   await rm(join(presentationsDir(), id), { recursive: true, force: true })
+}
+
+// ---- AI editor (Claude Code) ----
+
+type ChatEvent = { kind: 'assistant' | 'tool' | 'done' | 'error'; text: string }
+
+// Resume the Claude Code session per presentation so the chat keeps context.
+const sessionByPres = new Map<string, string>()
+
+/**
+ * Drive a Claude Code session to edit a presentation folder. Spawns `claude -p`
+ * with cwd = the folder (confinement), streams parsed progress via `emit`, and
+ * resolves when the turn ends. Only Read/Edit/Write/Glob/Grep are allowed (no Bash).
+ */
+export function sendChat(
+  presId: string,
+  message: string,
+  emit: (e: ChatEvent) => void,
+): Promise<void> {
+  return new Promise((resolveP) => {
+    const folder = join(presentationsDir(), presId)
+    const args = [
+      '-p',
+      message,
+      '--output-format',
+      'stream-json',
+      '--verbose',
+      '--allowedTools',
+      'Read,Edit,Write,Glob,Grep',
+      '--permission-mode',
+      'acceptEdits',
+    ]
+    const prev = sessionByPres.get(presId)
+    if (prev) args.push('--resume', prev)
+
+    // Ensure ~/.local/bin (where `claude` lives) is on PATH.
+    const env = { ...process.env, PATH: `${homedir()}/.local/bin:${process.env.PATH ?? ''}` }
+    const child = spawn('claude', args, { cwd: folder, env, stdio: ['ignore', 'pipe', 'pipe'] })
+
+    let buf = ''
+    child.stdout.on('data', (chunk: Buffer) => {
+      buf += chunk.toString()
+      let nl: number
+      while ((nl = buf.indexOf('\n')) !== -1) {
+        const line = buf.slice(0, nl).trim()
+        buf = buf.slice(nl + 1)
+        if (!line) continue
+        let msg: Record<string, unknown>
+        try {
+          msg = JSON.parse(line)
+        } catch {
+          continue
+        }
+        if (msg.type === 'assistant') {
+          const content = (msg.message as { content?: unknown[] })?.content ?? []
+          for (const b of content as Array<Record<string, unknown>>) {
+            if (b.type === 'text' && typeof b.text === 'string' && b.text.trim())
+              emit({ kind: 'assistant', text: b.text })
+            else if (b.type === 'tool_use') {
+              const file = (b.input as { file_path?: string })?.file_path
+              emit({ kind: 'tool', text: `${b.name}${file ? ' · ' + file.split('/').pop() : ''}` })
+            }
+          }
+        } else if (msg.type === 'result') {
+          if (typeof msg.session_id === 'string') sessionByPres.set(presId, msg.session_id)
+          emit({ kind: msg.is_error ? 'error' : 'done', text: String(msg.result ?? '') })
+        }
+        // everything else (system/hook/rate_limit/init) is noise — ignored
+      }
+    })
+    child.on('error', (e) => {
+      emit({ kind: 'error', text: e.message })
+      resolveP()
+    })
+    child.on('exit', () => resolveP())
+  })
 }
 
 export function getPreviewUrl(): Promise<string> {

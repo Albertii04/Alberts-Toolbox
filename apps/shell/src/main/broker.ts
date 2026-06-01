@@ -1,6 +1,7 @@
 import { BrowserWindow, Notification, clipboard, dialog, ipcMain, shell } from 'electron'
 import { readFile, writeFile } from 'node:fs/promises'
 import {
+  AUTHORING_CHAT_EVENT,
   CAPABILITY_DENIED,
   IPC,
   hasCapability,
@@ -9,7 +10,7 @@ import {
   type ToolManifest,
 } from '@toolbox/sdk'
 import { toolStorage } from './storage.js'
-import { createPresentation, deletePresentation, getPreviewUrl } from './authoring.js'
+import { createPresentation, deletePresentation, getPreviewUrl, sendChat } from './authoring.js'
 
 type ToolSource = 'builtin' | 'installed'
 
@@ -154,5 +155,11 @@ export function installBroker(): void {
   ipcMain.handle(IPC.authoringDelete, (e, id: string) => {
     authorize(e.sender.id, 'authoring')
     return deletePresentation(id)
+  })
+  ipcMain.handle(IPC.authoringChat, (e, presId: string, message: string) => {
+    authorize(e.sender.id, 'authoring')
+    return sendChat(presId, message, (ev) => {
+      if (!e.sender.isDestroyed()) e.sender.send(AUTHORING_CHAT_EVENT, { presId, ...ev })
+    })
   })
 }

@@ -39,7 +39,7 @@ async function nueva(): Promise<void> {
   try {
     const { id } = await authoring.createPresentation('Nueva presentación')
     await addPres(id, 'Nueva presentación')
-    location.search = `?preview=${id}`
+    location.search = `?edit=${id}`
   } catch (e) {
     alert('No se pudo crear la presentación: ' + (e as Error).message)
     busy.value = false
@@ -47,6 +47,9 @@ async function nueva(): Promise<void> {
 }
 function openPres(id: string): void {
   location.search = `?preview=${id}`
+}
+function openEdit(id: string): void {
+  location.search = `?edit=${id}`
 }
 function openExample(): void {
   location.search = '?pres=concep-deck'
@@ -82,8 +85,9 @@ async function remove(id: string): Promise<void> {
       <section class="block">
         <div class="block-label">Recientes</div>
         <div v-if="!loading && recents.length" class="grid">
-          <div v-for="r in recents" :key="r.id" class="card" @click="openPres(r.id)">
+          <div v-for="r in recents" :key="r.id" class="card" @click="openEdit(r.id)">
             <div class="card-ctl">
+              <button title="Vista en vivo" @click.stop="openPres(r.id)">⚡</button>
               <button title="Eliminar" @click.stop="remove(r.id)">✕</button>
             </div>
             <div class="thumb"><span>{{ r.name.slice(0, 1).toUpperCase() }}</span></div>

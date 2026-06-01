@@ -84,7 +84,20 @@ export interface ToolboxApi {
     createPresentation(name: string): Promise<{ id: string }>;
     /** Remove a presentation folder. */
     deletePresentation(id: string): Promise<void>;
+    /** Send a chat message to the AI editor (Claude Code) for a presentation;
+     *  it edits the folder's code. Resolves when the turn finishes. Stream
+     *  progress via onChat. */
+    sendChat(presId: string, message: string): Promise<void>;
+    /** Subscribe to AI editor chat events. Returns an unsubscribe fn. */
+    onChat(cb: (e: AuthoringChatEvent) => void): () => void;
   };
+}
+
+export type AuthoringChatKind = 'assistant' | 'tool' | 'done' | 'error';
+export interface AuthoringChatEvent {
+  presId: string;
+  kind: AuthoringChatKind;
+  text: string;
 }
 
 declare global {
