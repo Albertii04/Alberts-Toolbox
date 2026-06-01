@@ -22,10 +22,13 @@ function fmtDate(iso: string): string {
 async function nueva(): Promise<void> {
   const doc = createStarterDoc('Nueva presentación')
   await saveDoc(doc)
-  location.search = `?doc=${doc.id}`
+  location.search = `?edit=${doc.id}`
 }
 function openDoc(id: string): void {
   location.search = `?doc=${id}`
+}
+function editDoc(id: string): void {
+  location.search = `?edit=${id}`
 }
 function openExample(): void {
   location.search = '?pres=concep-deck'
@@ -56,7 +59,10 @@ async function remove(id: string): Promise<void> {
         <div class="block-label">Recientes</div>
         <div v-if="!loading && recents.length" class="grid">
           <div v-for="r in recents" :key="r.id" class="card" @click="openDoc(r.id)">
-            <button class="card-del" title="Eliminar" @click.stop="remove(r.id)">✕</button>
+            <div class="card-ctl">
+              <button title="Editar" @click.stop="editDoc(r.id)">✎</button>
+              <button title="Eliminar" @click.stop="remove(r.id)">✕</button>
+            </div>
             <div class="thumb"><span>{{ r.name.slice(0, 1).toUpperCase() }}</span></div>
             <div class="card-name">{{ r.name }}</div>
             <div class="card-meta">{{ fmtDate(r.updatedAt) }}</div>
@@ -172,10 +178,19 @@ async function remove(id: string): Promise<void> {
   border-color: rgba(148, 168, 202, 0.4);
   transform: translateY(-2px);
 }
-.card-del {
+.card-ctl {
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
+  display: flex;
+  gap: 0.15rem;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.card:hover .card-ctl {
+  opacity: 1;
+}
+.card-ctl button {
   width: 1.3rem;
   height: 1.3rem;
   display: grid;
@@ -183,13 +198,8 @@ async function remove(id: string): Promise<void> {
   border-radius: 2px;
   font-size: 0.7rem;
   color: var(--fg-muted);
-  opacity: 0;
-  transition: opacity 0.15s;
 }
-.card:hover .card-del {
-  opacity: 1;
-}
-.card-del:hover {
+.card-ctl button:hover {
   background: rgba(255, 255, 255, 0.08);
   color: var(--fg-primary);
 }

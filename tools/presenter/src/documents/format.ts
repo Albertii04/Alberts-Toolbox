@@ -62,6 +62,27 @@ export function createStarterDoc(name: string): PresentationDoc {
   }
 }
 
+export const BLOCK_TYPES: { type: DocBlock['type']; label: string }[] = [
+  { type: 'cover', label: 'Portada' },
+  { type: 'statement', label: 'Enunciado' },
+  { type: 'bullets', label: 'Lista' },
+  { type: 'image', label: 'Imagen' },
+]
+
+/** A default block of the given type, for adding a slide in the editor. */
+export function emptyBlock(type: DocBlock['type']): DocBlock {
+  switch (type) {
+    case 'cover':
+      return { type: 'cover', eyebrow: '', title: 'Título', subtitle: '' }
+    case 'statement':
+      return { type: 'statement', eyebrow: '', text: 'Tu frase aquí.' }
+    case 'bullets':
+      return { type: 'bullets', title: 'Título', items: ['Punto uno'] }
+    case 'image':
+      return { type: 'image', src: '', caption: '' }
+  }
+}
+
 /** Validate a parsed document. Returns errors ([] = valid). */
 export function validateDoc(input: unknown): string[] {
   const errors: string[] = []
