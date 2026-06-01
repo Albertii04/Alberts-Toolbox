@@ -4,7 +4,7 @@ import gsap from 'gsap'
 import { useDeckSync } from './composables/useDeckSync'
 import type { Presentation } from './types'
 
-const props = defineProps<{ presentation: Presentation }>()
+const props = defineProps<{ presentation: Presentation; navigable?: boolean }>()
 const slides = computed(() => props.presentation.slides)
 const wordmark = computed(() => props.presentation.theme?.wordmark ?? null)
 const themeVars = computed(() => props.presentation.theme?.vars ?? {})
@@ -70,9 +70,19 @@ watch(idx, (newV, oldV) => {
   transitionTo(newV, dir)
 })
 
+// Advancing respects a slide's internal sub-states (tryAdvance/tryBack) first.
+function next() {
+  if (slideRef.value && typeof slideRef.value.tryAdvance === 'function' && slideRef.value.tryAdvance())
+    return
+  if (idx.value < total.value - 1) idx.value = idx.value + 1
+}
+function prev() {
+  if (slideRef.value && typeof slideRef.value.tryBack === 'function' && slideRef.value.tryBack())
+    return
+  if (idx.value > 0) idx.value = idx.value - 1
+}
+
 function onKey(e: KeyboardEvent) {
-  // Navigation locked — only presenter UI controls slides.
-  // Keep F for fullscreen + Esc as utility for the projector machine.
   switch (e.key) {
     case 'f':
     case 'F':
@@ -82,15 +92,49 @@ function onKey(e: KeyboardEvent) {
     case 'Escape':
       if (document.fullscreenElement) document.exitFullscreen()
       break
+    case 'ArrowRight':
+    case ' ':
+    case 'PageDown':
+      if (props.navigable) next()
+      break
+    case 'ArrowLeft':
+    case 'PageUp':
+      if (props.navigable) prev()
+      break
   }
 }
 
 function onStageClick(_e: MouseEvent) {
-  // Click-to-advance disabled — control only from presenter UI
+  // Click-to-advance disabled — control only from presenter / editor UI
 }
+
+// In the editor preview (navigable), accept nav from the parent window and
+// report the current slide so the editor can show controls + a counter.
+function onMessage(e: MessageEvent) {
+  if (e.data?.type === 'deck-nav') {
+    if (e.data.dir === 'prev') prev()
+    else next()
+  }
+}
+function postState() {
+  if (!props.navigable) return
+  try {
+    window.parent?.postMessage(
+      { type: 'deck-state', idx: displayIdx.value, total: total.value },
+      '*',
+    )
+  } catch {
+    /* no parent */
+  }
+}
+watch(displayIdx, postState)
 
 onMounted(() => {
   document.addEventListener('keydown', onKey)
+  if (props.navigable) {
+    window.addEventListener('message', onMessage)
+    nextTick(postState)
+  }
   nextTick(() => {
     const host = slideHostEl.value
     if (!host) return
@@ -104,7 +148,10 @@ onMounted(() => {
     }
   })
 })
-onUnmounted(() => document.removeEventListener('keydown', onKey))
+onUnmounted(() => {
+  document.removeEventListener('keydown', onKey)
+  window.removeEventListener('message', onMessage)
+})
 
 watch(idx, (v) => {
   history.replaceState(null, '', `#${v + 1}`)

@@ -26,6 +26,19 @@ const input = ref('')
 const busy = ref(false)
 const previewUrl = ref('')
 const scroller = ref<HTMLElement | null>(null)
+const frame = ref<HTMLIFrameElement | null>(null)
+const deckIdx = ref(0)
+const deckTotal = ref(0)
+
+function onDeckMsg(e: MessageEvent): void {
+  if (e.data?.type === 'deck-state') {
+    deckIdx.value = e.data.idx
+    deckTotal.value = e.data.total
+  }
+}
+function nav(dir: 'prev' | 'next'): void {
+  frame.value?.contentWindow?.postMessage({ type: 'deck-nav', dir }, '*')
+}
 
 function scroll(): void {
   nextTick(() => {
@@ -34,6 +47,7 @@ function scroll(): void {
 }
 
 onMounted(async () => {
+  window.addEventListener('message', onDeckMsg)
   if (!authoring) {
     messages.value.push({ role: 'error', text: 'El editor IA solo está disponible dentro del shell.' })
     return
@@ -52,7 +66,7 @@ onMounted(async () => {
   })
   try {
     const base = await authoring.previewUrl()
-    previewUrl.value = `${base}?pres=${props.presId}`
+    previewUrl.value = `${base}?pres=${props.presId}&nav=1`
   } catch {
     /* preview may be unavailable */
   }
@@ -119,8 +133,15 @@ function goHome(): void {
     </aside>
 
     <main class="ce-preview">
-      <iframe v-if="previewUrl" :src="previewUrl" class="ce-frame" title="Vista en vivo" />
-      <div v-else class="ce-loading">Iniciando preview en vivo…</div>
+      <div class="ce-navbar">
+        <button class="ce-nav" title="Anterior" @click="nav('prev')">◀</button>
+        <span class="ce-count">{{ deckTotal ? deckIdx + 1 : '–' }} / {{ deckTotal || '–' }}</span>
+        <button class="ce-nav" title="Siguiente (incluye sub-pasos)" @click="nav('next')">▶</button>
+      </div>
+      <div class="ce-frame-wrap">
+        <iframe v-if="previewUrl" ref="frame" :src="previewUrl" class="ce-frame" title="Vista en vivo" />
+        <div v-else class="ce-loading">Iniciando preview en vivo…</div>
+      </div>
     </main>
   </div>
 </template>
@@ -256,6 +277,43 @@ function goHome(): void {
 .ce-preview {
   background: var(--slate-950);
   min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+.ce-navbar {
+  flex-shrink: 0;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+  border-bottom: 1px solid var(--rule);
+}
+.ce-nav {
+  width: 28px;
+  height: 24px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  color: var(--slate-300);
+  font-size: 0.7rem;
+}
+.ce-nav:hover {
+  border-color: var(--brand-500);
+  color: var(--fg-primary);
+}
+.ce-count {
+  font-size: 0.78rem;
+  color: var(--fg-muted);
+  font-variant-numeric: tabular-nums;
+  min-width: 4rem;
+  text-align: center;
+}
+.ce-frame-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
 }
 .ce-frame {
   width: 100%;
@@ -264,7 +322,8 @@ function goHome(): void {
   display: block;
 }
 .ce-loading {
-  height: 100%;
+  position: absolute;
+  inset: 0;
   display: grid;
   place-items: center;
   color: var(--fg-muted);
