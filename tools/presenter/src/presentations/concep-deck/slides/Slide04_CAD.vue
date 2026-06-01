@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { asset } from '../assets'
+</script>
+
 <template>
   <div class="layout-split">
     <div class="text-block">
@@ -15,7 +19,7 @@
       </div>
     </div>
     <div class="image-slot" style="aspect-ratio: 16/10;" data-reveal>
-      <img src="/images/01_cad.png" alt="CAD" />
+      <img :src="asset('01_cad.png')" alt="CAD" />
     </div>
   </div>
 </template>

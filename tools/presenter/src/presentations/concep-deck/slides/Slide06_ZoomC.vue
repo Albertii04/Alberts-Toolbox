@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { asset } from '../assets'
 import ZoomFrame from '../components/ZoomFrame.vue'
 </script>
 
@@ -14,7 +15,7 @@ import ZoomFrame from '../components/ZoomFrame.vue'
       <p class="muted" data-reveal>Lo que antes era modelar a mano, ahora es un clic.</p>
     </div>
     <div data-reveal>
-      <ZoomFrame src="/images/02_sketchup.png" focal-x="37%" focal-y="5%" :scale="4.5" instant />
+      <ZoomFrame :src="asset('02_sketchup.png')" focal-x="37%" focal-y="5%" :scale="4.5" instant />
     </div>
   </div>
 </template>

@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { asset } from '../assets'
 import ZoomFrame from '../components/ZoomFrame.vue'
 </script>
 
@@ -15,7 +16,7 @@ import ZoomFrame from '../components/ZoomFrame.vue'
       <p class="muted" data-reveal>D5 Lite es el plugin · D5 Render es el programa completo. Aquí usamos el plugin.</p>
     </div>
     <div data-reveal>
-      <ZoomFrame src="/images/05_final_sketchup.png" focal-x="38%" focal-y="5%" :scale="4.5" />
+      <ZoomFrame :src="asset('05_final_sketchup.png')" focal-x="38%" focal-y="5%" :scale="4.5" />
     </div>
   </div>
 </template>

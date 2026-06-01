@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { asset } from '../assets'
+</script>
+
 <template>
   <div class="layout-split">
     <div class="text-block">
@@ -12,7 +16,7 @@
     </div>
     <div class="image-window" data-reveal>
       <div class="iw-titlebar">D5 Lite · renderizando</div>
-      <div class="iw-body"><img src="/images/10_d5_rendering.png" alt="D5 renderizando" /></div>
+      <div class="iw-body"><img :src="asset('10_d5_rendering.png')" alt="D5 renderizando" /></div>
     </div>
   </div>
 </template>

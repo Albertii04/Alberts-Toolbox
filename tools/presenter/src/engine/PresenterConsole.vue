@@ -132,7 +132,7 @@ onUnmounted(() => {
 })
 
 function openAudience() {
-  window.open(location.pathname, '_blank')
+  window.open(`${location.pathname}?pres=${props.presentation.meta.id}`, '_blank')
 }
 </script>
 

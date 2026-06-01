@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { asset } from '../assets'
+</script>
+
 <template>
   <div class="layout-split">
     <div class="text-block">
@@ -12,7 +16,7 @@
     </div>
     <div class="image-window" data-reveal>
       <div class="iw-titlebar">SketchUp · proyecto.skp</div>
-      <div class="iw-body"><img src="/images/05_final_sketchup.png" alt="SketchUp listo" /></div>
+      <div class="iw-body"><img :src="asset('05_final_sketchup.png')" alt="SketchUp listo" /></div>
     </div>
   </div>
 </template>

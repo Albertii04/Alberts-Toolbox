@@ -1,3 +1,7 @@
+<script setup lang="ts">
+import { asset } from '../assets'
+</script>
+
 <template>
   <div class="layout-split">
     <div class="text-block">
@@ -12,7 +16,7 @@
     </div>
     <div class="image-window" data-reveal>
       <div class="iw-titlebar">D5 Lite · catálogo de estilos</div>
-      <div class="iw-body"><img src="/images/07_d5_style.png" alt="D5 estilos" /></div>
+      <div class="iw-body"><img :src="asset('07_d5_style.png')" alt="D5 estilos" /></div>
     </div>
   </div>
 </template>

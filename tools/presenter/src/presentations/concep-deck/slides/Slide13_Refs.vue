@@ -1,13 +1,17 @@
+<script setup lang="ts">
+import { asset } from '../assets'
+</script>
+
 <template>
   <div class="text-block" style="margin-bottom: 0.9rem;">
     <span class="eyebrow" data-reveal>El cliente nos da el norte</span>
     <h2 class="title" data-reveal>Cuatro imágenes de referencia. Cuatro direcciones distintas.</h2>
   </div>
   <div class="refs-grid">
-    <div class="ref-slot" data-reveal><img src="/images/ref_01.jpeg" alt="" /></div>
-    <div class="ref-slot" data-reveal><img src="/images/ref_02.jpeg" alt="" /></div>
-    <div class="ref-slot" data-reveal><img src="/images/ref_03.jpg" alt="" /></div>
-    <div class="ref-slot" data-reveal><img src="/images/ref_04.jpg" alt="" /></div>
+    <div class="ref-slot" data-reveal><img :src="asset('ref_01.jpeg')" alt="" /></div>
+    <div class="ref-slot" data-reveal><img :src="asset('ref_02.jpeg')" alt="" /></div>
+    <div class="ref-slot" data-reveal><img :src="asset('ref_03.jpg')" alt="" /></div>
+    <div class="ref-slot" data-reveal><img :src="asset('ref_04.jpg')" alt="" /></div>
   </div>
 </template>
 

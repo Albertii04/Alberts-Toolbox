@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import BeforeAfter from '../components/BeforeAfter.vue'
+import { asset } from '../assets'
 </script>
 
 <template>
@@ -19,8 +20,8 @@ import BeforeAfter from '../components/BeforeAfter.vue'
     </div>
     <div data-reveal>
       <BeforeAfter
-        before="/images/04_1_crudo.jpg"
-        after="/images/04_2_retocado.jpg"
+        :before="asset('04_1_crudo.jpg')"
+        :after="asset('04_2_retocado.jpg')"
         label-before="Crudo"
         label-after="Retocado"
       />

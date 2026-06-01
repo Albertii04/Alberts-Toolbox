@@ -1,17 +1,18 @@
 <script setup lang="ts">
+import { asset } from '../assets'
 import { ref, onMounted, nextTick, watch } from 'vue'
 import gsap from 'gsap'
 import { useSliderState } from '../../../engine/composables/useSliderState'
 
 const variants = [
-  { despues: '/images/1_despues.png', label: 'Render 01 · Referencia 01', ref: '/images/ref_01.jpeg' },
-  { despues: '/images/2_despues.png', label: 'Render 02 · Referencia 03', ref: '/images/ref_03.jpg' },
-  { despues: '/images/3_despues.png', label: 'Render 03 · Referencia 04', ref: '/images/ref_04.jpg' },
-  { despues: '/images/4_despues.png', label: 'Render 04 · Referencia 02', ref: '/images/ref_02.jpeg' },
+  { despues: asset('1_despues.png'), label: 'Render 01 · Referencia 01', ref: asset('ref_01.jpeg') },
+  { despues: asset('2_despues.png'), label: 'Render 02 · Referencia 03', ref: asset('ref_03.jpg') },
+  { despues: asset('3_despues.png'), label: 'Render 03 · Referencia 04', ref: asset('ref_04.jpg') },
+  { despues: asset('4_despues.png'), label: 'Render 04 · Referencia 02', ref: asset('ref_02.jpeg') },
 ]
 
 const showRef = ref(false)
-const antesSrc = '/images/1_antes.jpg'
+const antesSrc = asset('1_antes.jpg')
 
 const { pos, variant: variantIdx } = useSliderState('slide17')
 const displayVariant = ref(variantIdx.value)

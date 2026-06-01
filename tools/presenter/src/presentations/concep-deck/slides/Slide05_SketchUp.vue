@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { asset } from '../assets'
 import { ref, computed, watch, nextTick } from 'vue'
 import gsap from 'gsap'
 import ZoomFrame from '../components/ZoomFrame.vue'
@@ -92,7 +93,7 @@ defineExpose({ tryAdvance, tryBack, resetForward, resetBackward })
     </div>
     <div data-reveal>
       <ZoomFrame
-        src="/images/02_sketchup.png"
+        :src="asset('02_sketchup.png')"
         focal-x="37%"
         focal-y="5%"
         :scale="4.5"

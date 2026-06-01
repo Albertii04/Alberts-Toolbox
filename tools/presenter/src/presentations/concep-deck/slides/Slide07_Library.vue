@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { asset } from '../assets'
 import { ref, onMounted, watch } from 'vue'
 import gsap from 'gsap'
 import { useSliderState } from '../../../engine/composables/useSliderState'
@@ -8,21 +9,21 @@ const steps = [
     eyebrow: 'Paso 02 · Librería',
     title: 'Vuestra librería con todo el mobiliario de Concep.',
     body: 'Sillas, mesas, lámparas, vegetación, sanitarios... organizados por familia. Modelados una vez y reutilizados en cada proyecto.',
-    image: '/images/03_1_tipos.png',
+    image: asset('03_1_tipos.png'),
     caption: 'Vista principal — todas las familias.',
   },
   {
     eyebrow: 'Paso 02 · Dentro de cada familia',
     title: 'Cada familia, sus modelos.',
     body: 'Al abrir una familia vemos todos los modelos que tenemos. Crece con el equipo — cada vez que alguien suma un mueble, queda disponible para el resto.',
-    image: '/images/03_2_modelos.png',
+    image: asset('03_2_modelos.png'),
     caption: 'Modelos disponibles dentro de una familia.',
   },
   {
     eyebrow: 'Paso 02 · Variantes',
     title: 'Cada modelo, sus colores y acabados.',
     body: 'Color, acabado, medida. El bloque del CAD apunta a la variante exacta — no a una "parecida". Lo que tú dibujaste, eso aparece. Escala 1:1.',
-    image: '/images/03_3_variantes.png',
+    image: asset('03_3_variantes.png'),
     caption: 'Variantes de un mismo modelo.',
   },
 ]

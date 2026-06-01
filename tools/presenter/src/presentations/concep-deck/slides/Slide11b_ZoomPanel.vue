@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { asset } from '../assets'
 import ZoomFrame from '../components/ZoomFrame.vue'
 </script>
 
@@ -14,7 +15,7 @@ import ZoomFrame from '../components/ZoomFrame.vue'
       <p class="accent-text" style="font-size: 0.875rem;" data-reveal>Iteramos en directo.</p>
     </div>
     <div data-reveal>
-      <ZoomFrame src="/images/06_d5_panel.png" focal-x="42%" focal-y="52%" :scale="2.0" />
+      <ZoomFrame :src="asset('06_d5_panel.png')" focal-x="42%" focal-y="52%" :scale="2.0" />
     </div>
   </div>
 </template>
