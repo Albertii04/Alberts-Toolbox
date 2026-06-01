@@ -66,9 +66,11 @@ async function createWindow(): Promise<void> {
 function installShellIpc(): void {
   ipcMain.handle('shell:listTools', () => manager.summaries())
   ipcMain.handle('shell:openTool', (_e, id: string) => manager.open(id))
+  ipcMain.handle('shell:activateTool', (_e, id: string) => manager.activate(id))
+  ipcMain.handle('shell:closeTool', (_e, id: string) => manager.closeTab(id))
+  ipcMain.handle('shell:showHome', () => manager.showHome())
   ipcMain.handle('shell:reloadActiveTool', () => manager.reloadActive())
-  ipcMain.handle('shell:closeActiveTool', () => manager.closeActive())
-  ipcMain.handle('shell:getActiveToolId', () => manager.getActiveToolId())
+  ipcMain.handle('shell:getTabs', () => manager.tabs())
 }
 
 app.on('second-instance', () => {

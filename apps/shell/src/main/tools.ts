@@ -2,24 +2,29 @@ import { BrowserWindow, WebContentsView, app, shell } from 'electron'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadToolsFromDir, type LoadedTool } from '@toolbox/tool-host'
-import type { ToolStatus, ToolSummary } from '../shared/types.js'
+import type { TabsState, ToolStatus, ToolSummary } from '../shared/types.js'
 import { builtinToolsDir, installedToolsDir } from './paths.js'
 import { registerToolView, unregisterToolView } from './broker.js'
 
-/** Width of the shell's left sidebar (matches the renderer's w-64); tool views
- *  fill the area to its right. */
+/** Width of the shell's left sidebar (matches the renderer's w-64). */
 const SIDEBAR_W = 256
-/** Height of the per-tool top bar (name + reload + close), drawn by the shell. */
-const TOPBAR_H = 40
+/** Height of the tab bar; tool views sit below it. */
+const TABBAR_H = 40
 
 function toolPreloadPath(): string {
   return join(app.getAppPath(), 'out/preload/tool.js')
 }
 
+/**
+ * Hosts tools as Figma-style tabs: one tab (and one WebContentsView) per open
+ * tool. Switching shows that tab's view and hides the others; the shell pages
+ * (home/marketplace) hide all of them while the tabs stay open.
+ */
 export class ToolManager {
   private tools = new Map<string, LoadedTool>()
   private views = new Map<string, WebContentsView>()
   private loaded = new Set<string>()
+  private openOrder: string[] = []
   private win: BrowserWindow | null = null
   private activeId: string | null = null
 
@@ -57,36 +62,86 @@ export class ToolManager {
     }
   }
 
-  getActiveToolId(): string | null {
-    return this.activeId
+  tabs(): TabsState {
+    return { openIds: [...this.openOrder], activeId: this.activeId }
   }
 
+  private emitTabs(): void {
+    this.win?.webContents.send('shell:tabs', this.tabs())
+  }
   private emitStatus(id: string, status: ToolStatus): void {
     this.win?.webContents.send('shell:toolStatus', { id, status })
   }
 
+  /** Open a tool (creating its tab if needed) and focus it. */
   open(id: string): void {
-    const tool = this.tools.get(id)
-    if (!tool || !this.win) return
-    if (this.activeId === id) return
+    if (!this.tools.get(id) || !this.win) return
+    if (!this.openOrder.includes(id)) {
+      this.ensureView(id)
+      this.openOrder.push(id)
+    }
+    this.activate(id)
+  }
 
-    // hide whatever is showing
-    if (this.activeId) this.views.get(this.activeId)?.setVisible(false)
+  /** Focus an already-open tab. */
+  activate(id: string): void {
+    if (!this.win || !this.openOrder.includes(id)) return
+    for (const [otherId, v] of this.views) if (otherId !== id) v.setVisible(false)
     this.activeId = id
-
-    const existing = this.views.get(id)
-    if (existing) {
-      this.win.contentView.addChildView(existing) // bring to top
+    const view = this.views.get(id)
+    if (view) {
+      this.win.contentView.addChildView(view) // bring to top
       if (this.loaded.has(id)) {
-        existing.setVisible(true)
+        view.setVisible(true)
         this.layout()
         this.emitStatus(id, 'ready')
       } else {
-        existing.setVisible(false)
+        view.setVisible(false)
         this.emitStatus(id, 'loading')
       }
-      return
     }
+    this.emitTabs()
+  }
+
+  /** Close a tab, destroying its view; focus a neighbour or the home page. */
+  closeTab(id: string): void {
+    const view = this.views.get(id)
+    if (view && this.win) this.win.contentView.removeChildView(view)
+    view?.webContents.close()
+    this.views.delete(id)
+    this.loaded.delete(id)
+    const idx = this.openOrder.indexOf(id)
+    if (idx !== -1) this.openOrder.splice(idx, 1)
+    if (this.activeId === id) {
+      const next = this.openOrder[idx] ?? this.openOrder[idx - 1] ?? null
+      if (next) this.activate(next)
+      else this.showHome()
+    } else {
+      this.emitTabs()
+    }
+  }
+
+  /** Show a shell page (home/marketplace): hide all tool views, keep tabs open. */
+  showHome(): void {
+    for (const v of this.views.values()) v.setVisible(false)
+    this.activeId = null
+    this.emitTabs()
+  }
+
+  reloadActive(): void {
+    if (!this.activeId) return
+    const view = this.views.get(this.activeId)
+    if (!view) return
+    this.loaded.delete(this.activeId)
+    view.setVisible(false)
+    this.emitStatus(this.activeId, 'loading')
+    view.webContents.reload()
+  }
+
+  private ensureView(id: string): void {
+    if (this.views.has(id) || !this.win) return
+    const tool = this.tools.get(id)
+    if (!tool) return
 
     const view = new WebContentsView({
       webPreferences: {
@@ -118,8 +173,7 @@ export class ToolManager {
       if (/^https?:/.test(url)) void shell.openExternal(url)
     })
 
-    // Keep the view hidden until its content has loaded, so the shell can show a
-    // loading state underneath (a native view always paints over the renderer).
+    // Keep hidden until loaded so the shell can show a loading state underneath.
     wc.on('did-finish-load', () => {
       this.loaded.add(id)
       if (this.activeId === id) {
@@ -141,24 +195,7 @@ export class ToolManager {
     void wc.loadURL(tool.entryUrl)
   }
 
-  reloadActive(): void {
-    if (!this.activeId) return
-    const view = this.views.get(this.activeId)
-    if (!view) return
-    this.loaded.delete(this.activeId)
-    view.setVisible(false)
-    this.emitStatus(this.activeId, 'loading')
-    view.webContents.reload()
-  }
-
-  closeActive(): void {
-    if (!this.activeId) return
-    this.views.get(this.activeId)?.setVisible(false)
-    this.activeId = null
-  }
-
-  /** Reposition the active tool view into the content area beside the sidebar,
-   *  below the top bar. */
+  /** Reposition the active tool view into the content area, below the tab bar. */
   private layout(): void {
     if (!this.win || !this.activeId) return
     const view = this.views.get(this.activeId)
@@ -166,9 +203,9 @@ export class ToolManager {
     const { width, height } = this.win.getContentBounds()
     view.setBounds({
       x: SIDEBAR_W,
-      y: TOPBAR_H,
+      y: TABBAR_H,
       width: Math.max(0, width - SIDEBAR_W),
-      height: Math.max(0, height - TOPBAR_H),
+      height: Math.max(0, height - TABBAR_H),
     })
   }
 }

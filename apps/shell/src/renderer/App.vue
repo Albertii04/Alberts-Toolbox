@@ -12,18 +12,25 @@ import {
   ShieldCheck,
   PackageOpen,
 } from 'lucide-vue-next'
-import type { ToolStatus, ToolSummary } from '../shared/types'
+import type { TabsState, ToolStatus, ToolSummary } from '../shared/types'
 
 type View = 'home' | 'market'
 
 const tools = ref<ToolSummary[]>([])
-const activeId = ref<string | null>(null)
+const tabs = ref<TabsState>({ openIds: [], activeId: null })
 const activeStatus = ref<ToolStatus | null>(null)
 const view = ref<View>('home')
 const query = ref('')
 
 const fallbackIcon =
   '<svg viewBox="0 0 64 64" fill="none"><rect width="64" height="64" rx="14" fill="currentColor" opacity="0.12"/><rect x="20" y="20" width="24" height="24" rx="6" fill="currentColor" opacity="0.5"/></svg>'
+
+const activeId = computed(() => tabs.value.activeId)
+const byId = (id: string) => tools.value.find((t) => t.id === id) ?? null
+const openTools = computed(() =>
+  tabs.value.openIds.map(byId).filter((t): t is ToolSummary => t !== null),
+)
+const activeTool = computed(() => (activeId.value ? byId(activeId.value) : null))
 
 const filtered = computed(() => {
   const q = query.value.trim().toLowerCase()
@@ -32,40 +39,44 @@ const filtered = computed(() => {
     (t) => t.name.toLowerCase().includes(q) || (t.description ?? '').toLowerCase().includes(q),
   )
 })
-const activeTool = computed(() => tools.value.find((t) => t.id === activeId.value) ?? null)
 
 async function refresh(): Promise<void> {
   tools.value = await window.shellApi.listTools()
-  activeId.value = await window.shellApi.getActiveToolId()
+  tabs.value = await window.shellApi.getTabs()
 }
 
-async function openTool(id: string): Promise<void> {
-  activeStatus.value = 'loading'
-  activeId.value = id
-  await window.shellApi.openTool(id)
+function openTool(id: string): void {
+  if (tabs.value.activeId !== id) activeStatus.value = 'loading'
+  void window.shellApi.openTool(id)
+}
+function activateTab(id: string): void {
+  void window.shellApi.activateTool(id)
+}
+function closeTab(id: string): void {
+  void window.shellApi.closeTool(id)
 }
 function reloadTool(): void {
   activeStatus.value = 'loading'
   void window.shellApi.reloadActiveTool()
 }
-async function goHome(): Promise<void> {
-  await window.shellApi.closeActiveTool()
-  activeId.value = null
-  activeStatus.value = null
+function goHome(): void {
   view.value = 'home'
+  void window.shellApi.showHome()
 }
 function goMarket(): void {
   view.value = 'market'
-  void window.shellApi.closeActiveTool()
-  activeId.value = null
-  activeStatus.value = null
+  void window.shellApi.showHome()
 }
 
 onMounted(() => {
   void refresh()
   window.shellApi.onToolsChanged(() => void refresh())
+  window.shellApi.onTabs((s) => {
+    tabs.value = s
+    if (!s.activeId) activeStatus.value = null
+  })
   window.shellApi.onToolStatus((e) => {
-    if (e.id === activeId.value) activeStatus.value = e.status
+    if (e.id === tabs.value.activeId) activeStatus.value = e.status
   })
 })
 </script>
@@ -78,7 +89,6 @@ onMounted(() => {
     <aside
       class="flex w-64 shrink-0 flex-col border-r border-neutral-200/80 bg-neutral-100/60 dark:border-neutral-800/80 dark:bg-neutral-900/40"
     >
-      <!-- brand (drag region, clears macOS traffic lights) -->
       <div class="drag flex items-center gap-2.5 px-4 pb-3 pt-8">
         <div
           class="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-indigo-500 to-violet-600 text-white shadow-sm"
@@ -88,7 +98,6 @@ onMounted(() => {
         <span class="text-[13px] font-semibold tracking-tight">Alberts Toolbox</span>
       </div>
 
-      <!-- search -->
       <div class="no-drag px-3 pb-2">
         <div
           class="flex items-center gap-2 rounded-lg border border-neutral-200 bg-white px-2.5 py-1.5 dark:border-neutral-800 dark:bg-neutral-900"
@@ -103,7 +112,6 @@ onMounted(() => {
         </div>
       </div>
 
-      <!-- nav -->
       <nav class="flex flex-col gap-0.5 px-2 pt-1">
         <button
           class="flex items-center gap-2.5 rounded-lg px-2.5 py-1.5 text-[13px] font-medium transition-colors"
@@ -150,7 +158,11 @@ onMounted(() => {
               v-html="t.iconSvg ?? fallbackIcon"
             ></span>
             <span class="flex-1 truncate text-left">{{ t.name }}</span>
-            <span v-if="activeId === t.id" class="size-1.5 rounded-full bg-indigo-500" />
+            <span
+              v-if="tabs.openIds.includes(t.id)"
+              class="size-1.5 rounded-full"
+              :class="activeId === t.id ? 'bg-indigo-500' : 'bg-neutral-400 dark:bg-neutral-600'"
+            />
           </button>
         </li>
       </ul>
@@ -164,30 +176,47 @@ onMounted(() => {
 
     <!-- Content -->
     <main class="flex flex-1 flex-col overflow-hidden">
-      <!-- A tool is open -->
-      <template v-if="activeId">
-        <div
-          class="drag flex h-10 shrink-0 items-center justify-between border-b border-neutral-200 px-3 dark:border-neutral-800"
+      <!-- Top bar: tabs (or an empty drag strip when none are open) -->
+      <div
+        class="drag flex h-10 shrink-0 items-center gap-1 border-b border-neutral-200 px-2 dark:border-neutral-800"
+      >
+        <button
+          v-for="t in openTools"
+          :key="t.id"
+          class="no-drag group flex max-w-44 items-center gap-2 rounded-md px-2 py-1 text-[12px] transition-colors"
+          :class="
+            activeId === t.id
+              ? 'bg-neutral-200/80 text-neutral-900 dark:bg-neutral-800 dark:text-white'
+              : 'text-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50'
+          "
+          @click="activateTab(t.id)"
         >
-          <span class="text-[13px] font-medium">{{ activeTool?.name }}</span>
-          <div class="no-drag flex items-center gap-1">
-            <button
-              class="grid size-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-200/70 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-white"
-              title="Recargar"
-              @click="reloadTool"
-            >
-              <RefreshCw class="size-4" />
-            </button>
-            <button
-              class="grid size-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-200/70 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-white"
-              title="Cerrar"
-              @click="goHome"
-            >
-              <X class="size-4" />
-            </button>
-          </div>
-        </div>
-        <div class="relative flex-1">
+          <span class="tool-glyph grid size-4 shrink-0 place-items-center overflow-hidden" v-html="t.iconSvg ?? fallbackIcon"></span>
+          <span class="truncate">{{ t.name }}</span>
+          <span
+            class="grid size-4 place-items-center rounded text-neutral-400 hover:bg-neutral-300/60 hover:text-neutral-700 dark:hover:bg-neutral-700 dark:hover:text-white"
+            @click.stop="closeTab(t.id)"
+          >
+            <X class="size-3" />
+          </span>
+        </button>
+
+        <div class="flex-1" />
+
+        <button
+          v-if="activeId"
+          class="no-drag grid size-7 place-items-center rounded-md text-neutral-500 hover:bg-neutral-200/70 hover:text-neutral-900 dark:hover:bg-neutral-800 dark:hover:text-white"
+          title="Recargar"
+          @click="reloadTool"
+        >
+          <RefreshCw class="size-4" />
+        </button>
+      </div>
+
+      <!-- Body -->
+      <div class="relative flex-1 overflow-hidden">
+        <!-- Active tool: native view sits here; show loading/crash underneath -->
+        <template v-if="activeId">
           <div
             v-if="activeStatus === 'loading'"
             class="absolute inset-0 flex flex-col items-center justify-center gap-3"
@@ -211,101 +240,99 @@ onMounted(() => {
               Recargar
             </button>
           </div>
-        </div>
-      </template>
+        </template>
 
-      <!-- Home -->
-      <section v-else-if="view === 'home'" class="flex-1 overflow-y-auto">
-        <div class="drag h-8 w-full shrink-0" />
-        <div class="mx-auto max-w-5xl px-8 pb-12">
-          <header class="mb-7">
-            <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-indigo-500">
-              Tu caja de herramientas
-            </p>
-            <h1 class="text-2xl font-semibold tracking-tight">Inicio</h1>
-          </header>
+        <!-- Home -->
+        <section v-else-if="view === 'home'" class="h-full overflow-y-auto">
+          <div class="mx-auto max-w-5xl px-8 py-8">
+            <header class="mb-7">
+              <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-indigo-500">
+                Tu caja de herramientas
+              </p>
+              <h1 class="text-2xl font-semibold tracking-tight">Inicio</h1>
+            </header>
 
-          <div
-            v-if="filtered.length"
-            class="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3"
-          >
-            <button
-              v-for="t in filtered"
-              :key="t.id"
-              class="group flex flex-col items-start gap-2 rounded-xl border border-neutral-200 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
-              @click="openTool(t.id)"
-            >
-              <span
-                class="tool-glyph grid size-11 place-items-center overflow-hidden rounded-lg bg-neutral-100 text-neutral-500 ring-1 ring-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-700"
-                v-html="t.iconSvg ?? fallbackIcon"
-              ></span>
-              <span class="mt-1 text-[15px] font-semibold tracking-tight">{{ t.name }}</span>
-              <span class="line-clamp-2 text-[12px] leading-relaxed text-neutral-500">
-                {{ t.description }}
-              </span>
-              <span
-                class="mt-1 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400"
-              >
-                <ShieldCheck class="size-3" />
-                {{ t.capabilities.length ? t.capabilities.length + ' permisos' : 'sin permisos' }}
-              </span>
-            </button>
-          </div>
-
-          <div
-            v-else
-            class="flex max-w-md flex-col items-start gap-2 rounded-xl border border-dashed border-neutral-300 p-7 dark:border-neutral-700"
-          >
-            <PackageOpen class="size-6 text-neutral-400" />
-            <p class="text-[15px] font-semibold">
-              {{ query ? 'Sin resultados' : 'No hay herramientas todavía' }}
-            </p>
-            <p class="text-[13px] leading-relaxed text-neutral-500">
-              <template v-if="query">Prueba otra búsqueda.</template>
-              <template v-else>
-                Copia <code class="text-indigo-500">templates/tool-starter</code> en
-                <code class="text-indigo-500">tools/</code>, ajusta su
-                <code class="text-indigo-500">toolbox.json</code> y reconstruye.
-              </template>
-            </p>
-          </div>
-        </div>
-      </section>
-
-      <!-- Marketplace -->
-      <section v-else class="flex-1 overflow-y-auto">
-        <div class="drag h-8 w-full shrink-0" />
-        <div class="mx-auto max-w-5xl px-8 pb-12">
-          <header class="mb-7">
-            <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-indigo-500">
-              Comunidad
-            </p>
-            <h1 class="text-2xl font-semibold tracking-tight">Marketplace</h1>
-          </header>
-          <p class="mb-6 max-w-xl text-[13px] leading-relaxed text-neutral-500">
-            La instalación de herramientas de la comunidad desde un registro en GitHub llega en una
-            fase posterior. De momento se muestran las herramientas first-party incluidas.
-          </p>
-          <div class="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3">
             <div
-              v-for="t in filtered"
-              :key="t.id"
-              class="flex flex-col items-start gap-2 rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+              v-if="filtered.length"
+              class="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3"
             >
-              <span
-                class="tool-glyph grid size-11 place-items-center overflow-hidden rounded-lg bg-neutral-100 text-neutral-500 ring-1 ring-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-700"
-                v-html="t.iconSvg ?? fallbackIcon"
-              ></span>
-              <span class="mt-1 text-[15px] font-semibold tracking-tight">{{ t.name }}</span>
-              <span
-                class="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400"
+              <button
+                v-for="t in filtered"
+                :key="t.id"
+                class="group flex flex-col items-start gap-2 rounded-xl border border-neutral-200 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
+                @click="openTool(t.id)"
               >
-                Instalada
-              </span>
+                <span
+                  class="tool-glyph grid size-11 place-items-center overflow-hidden rounded-lg bg-neutral-100 text-neutral-500 ring-1 ring-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-700"
+                  v-html="t.iconSvg ?? fallbackIcon"
+                ></span>
+                <span class="mt-1 text-[15px] font-semibold tracking-tight">{{ t.name }}</span>
+                <span class="line-clamp-2 text-[12px] leading-relaxed text-neutral-500">
+                  {{ t.description }}
+                </span>
+                <span
+                  class="mt-1 inline-flex items-center gap-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400"
+                >
+                  <ShieldCheck class="size-3" />
+                  {{ t.capabilities.length ? t.capabilities.length + ' permisos' : 'sin permisos' }}
+                </span>
+              </button>
+            </div>
+
+            <div
+              v-else
+              class="flex max-w-md flex-col items-start gap-2 rounded-xl border border-dashed border-neutral-300 p-7 dark:border-neutral-700"
+            >
+              <PackageOpen class="size-6 text-neutral-400" />
+              <p class="text-[15px] font-semibold">
+                {{ query ? 'Sin resultados' : 'No hay herramientas todavía' }}
+              </p>
+              <p class="text-[13px] leading-relaxed text-neutral-500">
+                <template v-if="query">Prueba otra búsqueda.</template>
+                <template v-else>
+                  Copia <code class="text-indigo-500">templates/tool-starter</code> en
+                  <code class="text-indigo-500">tools/</code>, ajusta su
+                  <code class="text-indigo-500">toolbox.json</code> y reconstruye.
+                </template>
+              </p>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+
+        <!-- Marketplace -->
+        <section v-else class="h-full overflow-y-auto">
+          <div class="mx-auto max-w-5xl px-8 py-8">
+            <header class="mb-7">
+              <p class="mb-1 text-[11px] font-semibold uppercase tracking-wider text-indigo-500">
+                Comunidad
+              </p>
+              <h1 class="text-2xl font-semibold tracking-tight">Marketplace</h1>
+            </header>
+            <p class="mb-6 max-w-xl text-[13px] leading-relaxed text-neutral-500">
+              La instalación de herramientas de la comunidad desde un registro en GitHub llega en
+              una fase posterior. De momento se muestran las herramientas first-party incluidas.
+            </p>
+            <div class="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3">
+              <div
+                v-for="t in filtered"
+                :key="t.id"
+                class="flex flex-col items-start gap-2 rounded-xl border border-neutral-200 bg-white p-4 dark:border-neutral-800 dark:bg-neutral-900"
+              >
+                <span
+                  class="tool-glyph grid size-11 place-items-center overflow-hidden rounded-lg bg-neutral-100 text-neutral-500 ring-1 ring-neutral-200 dark:bg-neutral-800 dark:text-neutral-400 dark:ring-neutral-700"
+                  v-html="t.iconSvg ?? fallbackIcon"
+                ></span>
+                <span class="mt-1 text-[15px] font-semibold tracking-tight">{{ t.name }}</span>
+                <span
+                  class="inline-flex items-center gap-1 rounded-md bg-emerald-500/10 px-1.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-emerald-600 dark:text-emerald-400"
+                >
+                  Instalada
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
     </main>
   </div>
 </template>

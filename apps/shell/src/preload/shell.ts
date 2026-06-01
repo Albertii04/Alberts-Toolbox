@@ -4,9 +4,16 @@ import type { ShellApi } from '../shared/types.js'
 const api: ShellApi = {
   listTools: () => ipcRenderer.invoke('shell:listTools'),
   openTool: (id) => ipcRenderer.invoke('shell:openTool', id),
+  activateTool: (id) => ipcRenderer.invoke('shell:activateTool', id),
+  closeTool: (id) => ipcRenderer.invoke('shell:closeTool', id),
+  showHome: () => ipcRenderer.invoke('shell:showHome'),
   reloadActiveTool: () => ipcRenderer.invoke('shell:reloadActiveTool'),
-  closeActiveTool: () => ipcRenderer.invoke('shell:closeActiveTool'),
-  getActiveToolId: () => ipcRenderer.invoke('shell:getActiveToolId'),
+  getTabs: () => ipcRenderer.invoke('shell:getTabs'),
+  onTabs: (cb) => {
+    const listener = (_e: unknown, payload: Parameters<typeof cb>[0]): void => cb(payload)
+    ipcRenderer.on('shell:tabs', listener)
+    return () => ipcRenderer.removeListener('shell:tabs', listener)
+  },
   onToolsChanged: (cb) => {
     const listener = (): void => cb()
     ipcRenderer.on('shell:toolsChanged', listener)
