@@ -10,7 +10,7 @@
   },
   "scripts": {
     "dev": "turbo run dev --filter=@toolbox/shell...",
-    "dev:deck": "turbo run dev --filter=@toolbox/tool-deck",
+    "dev:presenter": "turbo run dev --filter=@toolbox/tool-presenter",
     "build": "turbo run build",
     "build:tools": "turbo run build --filter=./tools/*",
     "lint": "turbo run lint",

@@ -3,13 +3,13 @@
   "comment": "Marketplace catalog. Each tool entry points at a downloadable, SHA-pinned bundle (a GitHub Release zip of the built tool). Contributors publish by PR-ing an entry here. The shell fetches this file to render the marketplace. download/sha256 are filled when a release exists; null until then.",
   "tools": [
     {
-      "id": "primlux.deck",
-      "name": "Concep Deck",
+      "id": "albert.presenter",
+      "name": "Presenter",
       "version": "1.0.0",
-      "description": "De CAD a render con IA — workshop deck (Primlux / Concep).",
+      "description": "Motor de presentaciones con modo presentador, notas, timer y sincronización a dos pantallas.",
       "author": "Albert Marimón",
       "capabilities": [],
-      "icon": "https://raw.githubusercontent.com/Albertii04/Alberts-Toolbox/main/tools/deck/icon.svg",
+      "icon": "https://raw.githubusercontent.com/Albertii04/Alberts-Toolbox/main/tools/presenter/icon.svg",
       "download": null,
       "sha256": null
     }
