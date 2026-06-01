@@ -1,4 +1,4 @@
-import { BrowserWindow, WebContentsView, app } from 'electron'
+import { BrowserWindow, WebContentsView, app, shell } from 'electron'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { loadToolsFromDir, type LoadedTool } from '@toolbox/tool-host'
@@ -6,8 +6,9 @@ import type { ToolStatus, ToolSummary } from '../shared/types.js'
 import { builtinToolsDir, installedToolsDir } from './paths.js'
 import { registerToolView, unregisterToolView } from './broker.js'
 
-/** Width of the shell's left sidebar; tool views fill the area to its right. */
-const SIDEBAR_W = 248
+/** Width of the shell's left sidebar (matches the renderer's w-64); tool views
+ *  fill the area to its right. */
+const SIDEBAR_W = 256
 /** Height of the per-tool top bar (name + reload + close), drawn by the shell. */
 const TOPBAR_H = 40
 
@@ -103,6 +104,20 @@ export class ToolManager {
     const wc = view.webContents
     registerToolView(wc.id, tool.manifest)
     wc.on('destroyed', () => unregisterToolView(wc.id))
+
+    // A tool may open its own windows (e.g. the Presenter audience view): allow
+    // same-origin file:// windows; route external URLs to the OS browser.
+    wc.setWindowOpenHandler(({ url }) => {
+      if (url.startsWith('file://')) return { action: 'allow' }
+      if (/^https?:/.test(url)) void shell.openExternal(url)
+      return { action: 'deny' }
+    })
+    wc.on('will-navigate', (e, url) => {
+      if (url.startsWith('file://')) return
+      e.preventDefault()
+      if (/^https?:/.test(url)) void shell.openExternal(url)
+    })
+
     // Keep the view hidden until its content has loaded, so the shell can show a
     // loading state underneath (a native view always paints over the renderer).
     wc.on('did-finish-load', () => {
