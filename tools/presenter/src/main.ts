@@ -4,6 +4,7 @@ import { AudienceDeck, PresenterConsole } from './engine'
 import { getPresentation } from './presentations'
 import type { Presentation } from './engine/types'
 import Home from './Home.vue'
+import Editor from './Editor.vue'
 import { loadDoc } from './documents/store'
 import { documentToPresentation } from './documents/render'
 
@@ -22,6 +23,15 @@ function mountDeck(presentation: Presentation): void {
 //   ?pres=<id> → a bundled presentation (e.g. the Concep example)
 //   otherwise  → the Home dashboard
 async function boot(): Promise<void> {
+  const editId = params.get('edit')
+  if (editId) {
+    const doc = await loadDoc(editId)
+    if (doc) {
+      document.title = `${doc.name} — Editor`
+      createApp(Editor, { doc }).mount('#app')
+      return
+    }
+  }
   const docId = params.get('doc')
   if (docId) {
     const doc = await loadDoc(docId)
