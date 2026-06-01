@@ -3,7 +3,6 @@ import { computed, onMounted, ref } from 'vue'
 import {
   Boxes,
   House,
-  PanelLeft,
   Store,
   Search,
   RefreshCw,
@@ -99,29 +98,31 @@ onMounted(() => {
           title="Inicio"
           @click="goHome"
         >
-          <PanelLeft class="size-4" />
+          <House class="size-4" />
         </button>
 
-        <button
-          v-for="t in openTools"
-          :key="t.id"
-          class="no-drag group flex max-w-44 items-center gap-2 rounded-md px-2 py-1 text-[12px] transition-colors"
-          :class="
-            activeId === t.id
-              ? 'bg-neutral-200/80 text-neutral-900 dark:bg-neutral-800 dark:text-white'
-              : 'text-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50'
-          "
-          @click="activateTab(t.id)"
-        >
-          <span class="tool-glyph grid size-4 shrink-0 place-items-center overflow-hidden" v-html="t.iconSvg ?? fallbackIcon"></span>
-          <span class="truncate">{{ t.name }}</span>
-          <span
-            class="grid size-4 place-items-center rounded text-neutral-400 hover:bg-neutral-300/60 hover:text-neutral-700 dark:hover:bg-neutral-700 dark:hover:text-white"
-            @click.stop="closeTab(t.id)"
+        <TransitionGroup name="tab" tag="div" class="relative flex items-center gap-1">
+          <button
+            v-for="t in openTools"
+            :key="t.id"
+            class="tab no-drag group flex max-w-44 items-center gap-2 rounded-md px-2 py-1 text-[12px] transition-colors"
+            :class="
+              activeId === t.id
+                ? 'bg-neutral-200/80 text-neutral-900 dark:bg-neutral-800 dark:text-white'
+                : 'text-neutral-500 hover:bg-neutral-200/50 dark:hover:bg-neutral-800/50'
+            "
+            @click="activateTab(t.id)"
           >
-            <X class="size-3" />
-          </span>
-        </button>
+            <span class="tool-glyph grid size-4 shrink-0 place-items-center overflow-hidden" v-html="t.iconSvg ?? fallbackIcon"></span>
+            <span class="truncate">{{ t.name }}</span>
+            <span
+              class="grid size-4 place-items-center rounded text-neutral-400 hover:bg-neutral-300/60 hover:text-neutral-700 dark:hover:bg-neutral-700 dark:hover:text-white"
+              @click.stop="closeTab(t.id)"
+            >
+              <X class="size-3" />
+            </span>
+          </button>
+        </TransitionGroup>
 
         <div class="flex-1" />
 
@@ -135,17 +136,20 @@ onMounted(() => {
       </div>
 
       <div class="relative flex-1 overflow-hidden">
-        <div
-          v-if="activeStatus === 'loading'"
-          class="absolute inset-0 flex flex-col items-center justify-center gap-3"
-        >
-          <Loader class="size-7 animate-spin text-indigo-500" />
-          <p class="text-[13px] text-neutral-500">Cargando {{ activeTool?.name }}…</p>
-        </div>
-        <div
-          v-else-if="activeStatus === 'crashed'"
-          class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center"
-        >
+        <Transition name="fade">
+          <div
+            v-if="activeStatus === 'loading'"
+            key="loading"
+            class="absolute inset-0 flex flex-col items-center justify-center gap-3"
+          >
+            <Loader class="size-7 animate-spin text-indigo-500" />
+            <p class="text-[13px] text-neutral-500">Cargando {{ activeTool?.name }}…</p>
+          </div>
+          <div
+            v-else-if="activeStatus === 'crashed'"
+            key="crashed"
+            class="absolute inset-0 flex flex-col items-center justify-center gap-3 text-center"
+          >
           <TriangleAlert class="size-7 text-amber-500" />
           <p class="text-sm font-semibold">La herramienta ha fallado</p>
           <p class="text-[13px] text-neutral-500">
@@ -157,7 +161,8 @@ onMounted(() => {
           >
             Recargar
           </button>
-        </div>
+          </div>
+        </Transition>
       </div>
     </div>
 
@@ -261,9 +266,10 @@ onMounted(() => {
             class="grid grid-cols-[repeat(auto-fill,minmax(13rem,1fr))] gap-3"
           >
             <button
-              v-for="t in filtered"
+              v-for="(t, i) in filtered"
               :key="t.id"
-              class="group flex flex-col items-start gap-2 rounded-xl border border-neutral-200 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
+              class="card-in group flex flex-col items-start gap-2 rounded-xl border border-neutral-200 bg-white p-4 text-left transition-all hover:-translate-y-0.5 hover:border-neutral-300 hover:shadow-md dark:border-neutral-800 dark:bg-neutral-900 dark:hover:border-neutral-700"
+              :style="{ animationDelay: i * 0.03 + 's' }"
               @click="openTool(t.id)"
             >
               <span

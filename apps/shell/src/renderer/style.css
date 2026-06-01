@@ -38,3 +38,57 @@
   height: 100%;
   display: block;
 }
+
+/* ---- motion ---- */
+/* Tabs: pop in (overshoot) on open, scale out on close, slide to reflow. */
+.tab-enter-active {
+  transition: all 0.22s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.tab-leave-active {
+  transition: all 0.16s ease;
+  position: absolute;
+}
+.tab-enter-from,
+.tab-leave-to {
+  opacity: 0;
+  transform: scale(0.7);
+}
+.tab-move {
+  transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Loading / crash overlay cross-fade. */
+.fade-enter-active,
+.fade-leave-active {
+  transition: opacity 0.2s ease;
+}
+.fade-enter-from,
+.fade-leave-to {
+  opacity: 0;
+}
+
+/* Launcher cards: gentle staggered rise on mount. */
+@keyframes cardIn {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+.card-in {
+  animation: cardIn 0.32s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+@media (prefers-reduced-motion: reduce) {
+  .tab-enter-active,
+  .tab-leave-active,
+  .tab-move,
+  .fade-enter-active,
+  .fade-leave-active,
+  .card-in {
+    transition: none;
+    animation: none;
+  }
+}

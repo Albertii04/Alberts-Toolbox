@@ -1,21 +1,37 @@
-import { createApp } from 'vue'
+import { createApp, type Component } from 'vue'
 import './engine/engine.css'
-import { AudienceDeck, PresenterConsole, Picker } from './engine'
-import { presentations, getPresentation } from './presentations'
+import { AudienceDeck, PresenterConsole } from './engine'
+import { getPresentation } from './presentations'
+import type { Presentation } from './engine/types'
+import Home from './Home.vue'
+import { loadDoc } from './documents/store'
+import { documentToPresentation } from './documents/render'
 
 const params = new URLSearchParams(location.search)
 const isPresenter = params.has('p')
-const presId = params.get('pres')
 
-// Resolve the presentation: explicit ?pres wins; with a single bundled
-// presentation we enter it directly; otherwise show the picker.
-let presentation = presId ? getPresentation(presId) : undefined
-if (!presentation && presentations.length === 1) presentation = presentations[0]
-
-if (!presentation) {
-  createApp(Picker, { presentations }).mount('#app')
-} else {
+function mountDeck(presentation: Presentation): void {
   // A presentation may ship its own presenter console (escape hatch).
-  const Root = isPresenter ? presentation.Presenter ?? PresenterConsole : AudienceDeck
+  const Root: Component = isPresenter ? (presentation.Presenter ?? PresenterConsole) : AudienceDeck
   createApp(Root, { presentation }).mount('#app')
 }
+
+// Resolve what to show:
+//   ?doc=<id>  → a stored document presentation
+//   ?pres=<id> → a bundled presentation (e.g. the Concep example)
+//   otherwise  → the Home dashboard
+async function boot(): Promise<void> {
+  const docId = params.get('doc')
+  if (docId) {
+    const doc = await loadDoc(docId)
+    if (doc) return mountDeck(documentToPresentation(doc))
+  }
+  const presId = params.get('pres')
+  if (presId) {
+    const p = getPresentation(presId)
+    if (p) return mountDeck(p)
+  }
+  createApp(Home).mount('#app')
+}
+
+void boot()
