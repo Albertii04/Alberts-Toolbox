@@ -2,7 +2,7 @@
 import { ref, computed, watch, nextTick } from 'vue'
 import gsap from 'gsap'
 import ZoomFrame from '../components/ZoomFrame.vue'
-import { useSliderState } from '../composables/useSliderState'
+import { useSliderState } from '../../../engine/composables/useSliderState'
 
 // state: 0 = intro sin zoom · 1 = intro + zoom · 2 = nuevo texto (extensión clave) + zoom mantenido
 const { variant: stateIdx } = useSliderState('slide05')

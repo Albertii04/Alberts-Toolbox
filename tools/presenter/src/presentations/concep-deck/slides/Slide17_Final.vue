@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, watch } from 'vue'
 import gsap from 'gsap'
-import { useSliderState } from '../composables/useSliderState'
+import { useSliderState } from '../../../engine/composables/useSliderState'
 
 const variants = [
   { despues: '/images/1_despues.png', label: 'Render 01 · Referencia 01', ref: '/images/ref_01.jpeg' },

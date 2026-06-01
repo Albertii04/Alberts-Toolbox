@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, onMounted, watch } from 'vue'
 import gsap from 'gsap'
-import { useSliderState } from '../composables/useSliderState'
+import { useSliderState } from '../../../engine/composables/useSliderState'
 
 const steps = [
   {

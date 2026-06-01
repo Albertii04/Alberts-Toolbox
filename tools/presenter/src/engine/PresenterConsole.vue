@@ -1,29 +1,40 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref } from 'vue'
-import { slides } from './slidesManifest'
 import { useDeckSync } from './composables/useDeckSync'
 import { useSliderState } from './composables/useSliderState'
+import type { Presentation } from './types'
 
-const slider17 = useSliderState('slide17')
-const wf03 = useSliderState('slide03')
-const lib07 = useSliderState('slide07')
-const zoom05 = useSliderState('slide05')
+const props = defineProps<{ presentation: Presentation }>()
+const slides = computed(() => props.presentation.slides)
+const wordmark = computed(() => props.presentation.theme?.wordmark ?? null)
 
 const { idx } = useDeckSync(0)
 // Read initial hash if present
 const hash = parseInt(location.hash.replace('#', ''), 10)
-if (!isNaN(hash) && hash >= 1 && hash <= slides.length) idx.value = hash - 1
+if (!isNaN(hash) && hash >= 1 && hash <= slides.value.length) idx.value = hash - 1
 
-const total = computed(() => slides.length)
-const current = computed(() => slides[idx.value])
-const next = computed(() => idx.value < total.value - 1 ? slides[idx.value + 1] : null)
-const isSlide17 = computed(() => current.value?.title?.startsWith('Render final'))
-const variantLabels = ['Render 01', 'Render 02', 'Render 03', 'Render 04']
-const isSlide03 = computed(() => current.value?.title === 'El flujo')
-const wfLabels = ['01 · CAD', '02 · 3D', '03 · Detalle', '04 · Render']
-const isSlide07 = computed(() => current.value?.title?.startsWith('Librería'))
-const libLabels = ['01 · Familias', '02 · Modelos', '03 · Variantes']
-const isSlide05 = computed(() => current.value?.title === 'Paso 2 — SketchUp')
+const total = computed(() => slides.value.length)
+const current = computed(() => slides.value[idx.value])
+const next = computed(() => idx.value < total.value - 1 ? slides.value[idx.value + 1] : null)
+const currentControls = computed(() => current.value?.controls ?? [])
+
+// Presenter controls are declared per-slide and driven generically, so the
+// console carries no presentation-specific logic. Pre-create a synced state per
+// referenced key (composables must run during setup).
+const sliderStates = new Map<string, ReturnType<typeof useSliderState>>()
+for (const s of slides.value) {
+  for (const c of s.controls ?? []) {
+    if (!sliderStates.has(c.stateKey)) sliderStates.set(c.stateKey, useSliderState(c.stateKey))
+  }
+}
+function stateFor(key: string) {
+  let st = sliderStates.get(key)
+  if (!st) {
+    st = useSliderState(key)
+    sliderStates.set(key, st)
+  }
+  return st
+}
 
 function go(n: number) {
   if (n < 0 || n >= total.value) return
@@ -129,7 +140,7 @@ function openAudience() {
   <div class="presenter">
     <header class="p-header">
       <div class="p-brand">
-        <span class="wm-primary">PRIMLUX</span><span class="wm-slash">/</span><span class="wm-suffix">PRESENTER</span>
+        <span class="wm-primary">{{ wordmark?.primary ?? 'PRESENTER' }}</span><span class="wm-slash">/</span><span class="wm-suffix">PRESENTER</span>
       </div>
       <div class="p-status">
         <button @click="openAudience" class="p-btn">Abrir vista audiencia ↗</button>
@@ -165,75 +176,32 @@ function openAudience() {
           <div class="p-timer" :class="{ running }">{{ elapsedFmt }}</div>
         </div>
 
-        <div v-if="isSlide03" class="p-block slider-block">
-          <div class="p-label">Foco del flujo</div>
-          <div class="p-variant-row">
+        <div v-for="(ctrl, ci) in currentControls" :key="ci" class="p-block slider-block">
+          <div class="p-label">{{ ctrl.label }}</div>
+
+          <template v-if="ctrl.kind === 'range'">
+            <input
+              type="range"
+              :min="ctrl.min ?? 0"
+              :max="ctrl.max ?? 100"
+              :step="ctrl.step ?? 0.5"
+              v-model.number="stateFor(ctrl.stateKey).pos.value"
+              class="p-range"
+            />
+            <div class="p-range-labels">
+              <span>{{ ctrl.lowLabel ?? '' }}</span>
+              <span class="p-range-val">{{ Math.round(stateFor(ctrl.stateKey).pos.value) }}%</span>
+              <span>{{ ctrl.highLabel ?? '' }}</span>
+            </div>
+          </template>
+
+          <div v-else class="p-variant-row">
             <button
-              v-for="(lbl, i) in wfLabels"
+              v-for="(lbl, i) in ctrl.options"
               :key="i"
               class="p-btn p-variant"
-              :class="{ active: wf03.variant.value === i }"
-              @click="wf03.variant.value = i"
-            >{{ lbl }}</button>
-          </div>
-        </div>
-
-        <div v-if="isSlide05" class="p-block slider-block">
-          <div class="p-label">Paso 2 · Sub-estado</div>
-          <div class="p-variant-row">
-            <button
-              class="p-btn p-variant"
-              :class="{ active: zoom05.variant.value === 0 }"
-              @click="zoom05.variant.value = 0"
-            >01 · Intro</button>
-            <button
-              class="p-btn p-variant"
-              :class="{ active: zoom05.variant.value === 1 }"
-              @click="zoom05.variant.value = 1"
-            >02 · Zoom</button>
-            <button
-              class="p-btn p-variant"
-              :class="{ active: zoom05.variant.value === 2 }"
-              @click="zoom05.variant.value = 2"
-            >03 · Detalle</button>
-          </div>
-        </div>
-
-        <div v-if="isSlide07" class="p-block slider-block">
-          <div class="p-label">Sub-paso librería</div>
-          <div class="p-variant-row">
-            <button
-              v-for="(lbl, i) in libLabels"
-              :key="i"
-              class="p-btn p-variant"
-              :class="{ active: lib07.variant.value === i }"
-              @click="lib07.variant.value = i"
-            >{{ lbl }}</button>
-          </div>
-        </div>
-
-        <div v-if="isSlide17" class="p-block slider-block">
-          <div class="p-label">Control slider · Render</div>
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="0.5"
-            v-model.number="slider17.pos.value"
-            class="p-range"
-          />
-          <div class="p-range-labels">
-            <span>Antes</span>
-            <span class="p-range-val">{{ Math.round(slider17.pos.value) }}%</span>
-            <span>Después</span>
-          </div>
-          <div class="p-variant-row">
-            <button
-              v-for="(lbl, i) in variantLabels"
-              :key="i"
-              class="p-btn p-variant"
-              :class="{ active: slider17.variant.value === i }"
-              @click="slider17.variant.value = i"
+              :class="{ active: stateFor(ctrl.stateKey).variant.value === i }"
+              @click="stateFor(ctrl.stateKey).variant.value = i"
             >{{ lbl }}</button>
           </div>
         </div>

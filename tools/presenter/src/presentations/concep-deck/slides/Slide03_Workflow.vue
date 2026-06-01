@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { useSliderState } from '../composables/useSliderState'
+import { useSliderState } from '../../../engine/composables/useSliderState'
 
 const { variant: step } = useSliderState('slide03')
 

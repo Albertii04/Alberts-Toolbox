@@ -1,0 +1,5 @@
+export * from './types'
+export { useDeckSync } from './composables/useDeckSync'
+export { useSliderState } from './composables/useSliderState'
+export { default as AudienceDeck } from './AudienceDeck.vue'
+export { default as PresenterConsole } from './PresenterConsole.vue'

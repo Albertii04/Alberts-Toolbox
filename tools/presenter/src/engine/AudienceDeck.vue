@@ -1,13 +1,18 @@
 <script setup lang="ts">
 import { computed, onMounted, onUnmounted, ref, watch, nextTick } from 'vue'
 import gsap from 'gsap'
-import { slides as manifest } from './slidesManifest'
 import { useDeckSync } from './composables/useDeckSync'
+import type { Presentation } from './types'
+
+const props = defineProps<{ presentation: Presentation }>()
+const slides = computed(() => props.presentation.slides)
+const wordmark = computed(() => props.presentation.theme?.wordmark ?? null)
+const themeVars = computed(() => props.presentation.theme?.vars ?? {})
 
 const { idx } = useDeckSync(0)
 const displayIdx = ref(idx.value)
-const current = computed(() => manifest[displayIdx.value].component)
-const total = computed(() => manifest.length)
+const current = computed(() => slides.value[displayIdx.value]?.component)
+const total = computed(() => slides.value.length)
 const isCover = computed(() => displayIdx.value === 0)
 const isClose = computed(() => displayIdx.value === total.value - 1)
 
@@ -106,11 +111,11 @@ watch(idx, (v) => {
 })
 
 const hash = parseInt(location.hash.replace('#', ''), 10)
-if (!isNaN(hash) && hash >= 1 && hash <= manifest.length) idx.value = hash - 1
+if (!isNaN(hash) && hash >= 1 && hash <= slides.value.length) idx.value = hash - 1
 </script>
 
 <template>
-  <div class="deck" @click="onStageClick">
+  <div class="deck" :style="themeVars" @click="onStageClick">
     <div class="progress">
       <div class="bar" :style="{ width: ((displayIdx + 1) / total * 100) + '%' }"></div>
     </div>
@@ -120,8 +125,8 @@ if (!isNaN(hash) && hash >= 1 && hash <= manifest.length) idx.value = hash - 1
         <component :is="current" ref="slideRef" />
       </div>
 
-      <div v-show="!isCover && !isClose" class="wordmark">
-        <span class="wm-primary">PRIMLUX</span><span class="wm-slash">/</span><span class="wm-suffix">CONSULTING</span>
+      <div v-show="wordmark && !isCover && !isClose" class="wordmark">
+        <span class="wm-primary">{{ wordmark?.primary }}</span><span class="wm-slash">/</span><span class="wm-suffix">{{ wordmark?.suffix }}</span>
       </div>
       <div v-show="!isCover" class="counter">
         <span>{{ paddedNum(displayIdx + 1) }}</span><span class="sep">/</span><span>{{ paddedNum(total) }}</span>
