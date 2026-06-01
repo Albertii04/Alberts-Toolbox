@@ -1,6 +1,7 @@
 import { resolve } from 'node:path'
 import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
+import tailwindcss from '@tailwindcss/vite'
 
 // @toolbox/* are workspace packages — bundle them into main/preload rather than
 // treating them as external node_modules, so packaging stays simple.
@@ -32,6 +33,6 @@ export default defineConfig({
     build: {
       rollupOptions: { input: { index: resolve(__dirname, 'src/renderer/index.html') } },
     },
-    plugins: [vue()],
+    plugins: [vue(), tailwindcss()],
   },
 })

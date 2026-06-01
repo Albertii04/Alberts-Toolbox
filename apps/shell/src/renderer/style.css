@@ -1,375 +1,40 @@
-:root {
-  --brand-300: #94a8ca;
-  --brand-500: #556f9e;
-  --brand-700: #36486e;
-  --slate-100: #f1f5f9;
-  --slate-300: #cbd5e1;
-  --slate-400: #94a3b8;
-  --slate-500: #64748b;
-  --slate-950: #04060b;
-  --rule: rgba(255, 255, 255, 0.12);
-  --rule-soft: rgba(255, 255, 255, 0.07);
-  --sidebar-w: 248px;
-  --font: 'Inter', 'Helvetica Neue', Arial, sans-serif;
+@import 'tailwindcss';
+
+/* Follow-system theme: Tailwind's default `dark:` variant uses
+   prefers-color-scheme, so light/dark switch automatically with the OS. */
+
+@theme {
+  --font-sans: 'Inter', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --radius-card: 0.625rem;
 }
 
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
-}
-
-html,
-body,
-#app {
-  height: 100%;
-  width: 100%;
-}
-
-body {
-  font-family: var(--font);
-  color: var(--slate-300);
-  background:
-    radial-gradient(820px 380px at 12% 2%, rgba(67, 87, 128, 0.18), transparent 64%),
-    linear-gradient(180deg, #07090e 0%, #05070b 44%, #04060b 100%);
-  -webkit-font-smoothing: antialiased;
-  user-select: none;
-}
-
-button {
-  font: inherit;
-  color: inherit;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
-}
-
-.app {
-  display: grid;
-  grid-template-columns: var(--sidebar-w) 1fr;
-  height: 100vh;
-}
-
-/* ---- sidebar ---- */
-.sidebar {
-  width: var(--sidebar-w);
-  border-right: 1px solid var(--rule);
-  display: flex;
-  flex-direction: column;
-  padding: 14px 12px;
-  padding-top: 38px; /* clears macOS traffic lights with hiddenInset */
-  gap: 4px;
-  background: rgba(4, 6, 11, 0.6);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 6px 8px 14px;
-}
-.brand-mark {
-  width: 26px;
-  height: 26px;
-  display: grid;
-  place-items: center;
-  background: var(--brand-700);
-  color: #fff;
-  font-weight: 600;
-  border-radius: 3px;
-  font-size: 14px;
-}
-.brand-name {
-  font-size: 13px;
-  font-weight: 600;
-  color: var(--slate-100);
-  letter-spacing: -0.01em;
-}
-
-.nav {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-.nav-item {
-  text-align: left;
-  padding: 8px 10px;
-  border-radius: 3px;
-  font-size: 13px;
-  color: var(--slate-300);
-}
-.nav-item:hover {
-  background: var(--rule-soft);
-}
-.nav-item.active {
-  background: var(--rule);
-  color: var(--slate-100);
-}
-
-.section-label {
-  margin: 16px 10px 6px;
-  font-size: 10px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--slate-500);
-}
-
-.tool-list {
-  list-style: none;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  overflow-y: auto;
-  flex: 1;
-}
-.tool-row {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 7px 10px;
-  border-radius: 3px;
-  font-size: 13px;
-  color: var(--slate-300);
-}
-.tool-row:hover {
-  background: var(--rule-soft);
-}
-.tool-row.active {
-  background: var(--rule);
-  color: var(--slate-100);
-}
-.tool-ico {
-  width: 18px;
-  height: 18px;
-  display: block;
-}
-.tool-ico :deep(svg),
-.tool-ico svg {
-  width: 18px;
-  height: 18px;
-  display: block;
-}
-.tool-row-name {
-  flex: 1;
-  text-align: left;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.running-dot {
-  width: 6px;
-  height: 6px;
-  border-radius: 50%;
-  background: var(--brand-300);
-}
-
-.sidebar-foot {
-  padding: 10px 10px 2px;
-  font-size: 10px;
-  color: var(--slate-500);
-  border-top: 1px solid var(--rule-soft);
-}
-
-/* ---- content ---- */
-.content {
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
-}
-.home,
-.market {
-  flex: 1;
-  overflow-y: auto;
-}
-.pad {
-  padding: 48px clamp(28px, 5vw, 64px);
-}
-.content-head {
-  margin-bottom: 28px;
-}
-
-/* ---- open-tool chrome ---- */
-.tool-topbar {
-  flex: 0 0 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 8px 0 16px;
-  border-bottom: 1px solid var(--rule);
-  background: rgba(4, 6, 11, 0.7);
-  -webkit-app-region: drag;
-}
-.tt-name {
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--slate-100);
-  letter-spacing: 0.01em;
-}
-.tt-actions {
-  display: flex;
-  gap: 2px;
-  -webkit-app-region: no-drag;
-}
-.tt-btn {
-  width: 28px;
-  height: 28px;
-  display: grid;
-  place-items: center;
-  border-radius: 3px;
-  font-size: 14px;
-  color: var(--slate-400);
-}
-.tt-btn:hover {
-  background: var(--rule-soft);
-  color: var(--slate-100);
-}
-.tool-stage {
-  flex: 1;
-  position: relative;
-}
-.tool-overlay {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 14px;
-  text-align: center;
-  padding: 24px;
-}
-.spinner {
-  width: 30px;
-  height: 30px;
-  border: 2px solid var(--rule);
-  border-top-color: var(--brand-300);
-  border-radius: 50%;
-  animation: spin 0.7s linear infinite;
-}
-@keyframes spin {
-  to {
-    transform: rotate(360deg);
+@layer base {
+  html,
+  body,
+  #app {
+    height: 100%;
+    width: 100%;
+  }
+  body {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+    overflow: hidden;
+    user-select: none;
   }
 }
-.ov-text {
-  font-size: 13px;
-  color: var(--slate-400);
+
+/* Electron window drag regions (frameless / hiddenInset title bar). */
+.drag {
+  -webkit-app-region: drag;
 }
-.ov-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--slate-100);
-}
-.ov-btn {
-  margin-top: 4px;
-  padding: 8px 18px;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  font-size: 12px;
-  color: var(--slate-100);
-}
-.ov-btn:hover {
-  border-color: rgba(148, 168, 202, 0.5);
-  background: rgba(148, 168, 202, 0.08);
+.no-drag {
+  -webkit-app-region: no-drag;
 }
 
-/* ---- empty state ---- */
-.empty {
-  max-width: 440px;
-  border: 1px dashed var(--rule);
-  border-radius: 3px;
-  padding: 28px;
-}
-.empty-title {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--slate-100);
-  margin-bottom: 8px;
-}
-.empty-text {
-  font-size: 13px;
-  line-height: 1.6;
-  color: var(--slate-400);
-}
-.empty-text code {
-  color: var(--brand-300);
-  font-size: 12px;
-}
-.eyebrow {
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--brand-300);
-  margin-bottom: 8px;
-}
-.content-head h1 {
-  font-size: 30px;
-  font-weight: 600;
-  color: #fff;
-  letter-spacing: -0.02em;
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
-  gap: 14px;
-}
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  text-align: left;
-  padding: 18px;
-  border: 1px solid var(--rule);
-  border-radius: 3px;
-  background: rgba(255, 255, 255, 0.015);
-  transition: border-color 0.15s, background 0.15s;
-}
-.card:hover {
-  border-color: rgba(148, 168, 202, 0.4);
-  background: rgba(255, 255, 255, 0.03);
-}
-.card.static {
-  cursor: default;
-}
-.card-ico {
-  width: 40px;
-  height: 40px;
+/* Tool icons arrive as raw <svg> markup; make them fill their tile. */
+.tool-glyph svg {
+  width: 100%;
+  height: 100%;
   display: block;
-  margin-bottom: 6px;
-}
-.card-ico svg {
-  width: 40px;
-  height: 40px;
-  display: block;
-}
-.card-name {
-  font-size: 15px;
-  font-weight: 600;
-  color: var(--slate-100);
-}
-.card-desc {
-  font-size: 12px;
-  color: var(--slate-400);
-  line-height: 1.5;
-}
-.card-caps,
-.card-tag {
-  margin-top: 4px;
-  font-size: 10px;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  color: var(--slate-500);
-}
-
-.market-stub p {
-  max-width: 560px;
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--slate-400);
-  margin-bottom: 24px;
 }
