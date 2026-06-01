@@ -34,6 +34,32 @@ export async function getRecents(): Promise<RecentEntry[]> {
   return (await kv().get<RecentEntry[]>(RECENTS_KEY)) ?? []
 }
 
+// ---- code presentations (folders, the new model) ----
+export interface PresEntry {
+  id: string
+  name: string
+  updatedAt: string
+}
+const PRES_KEY = 'presentations'
+
+export async function getPresList(): Promise<PresEntry[]> {
+  return (await kv().get<PresEntry[]>(PRES_KEY)) ?? []
+}
+export async function addPres(id: string, name: string): Promise<void> {
+  const list = await getPresList()
+  await kv().set(PRES_KEY, [
+    { id, name, updatedAt: new Date().toISOString() },
+    ...list.filter((p) => p.id !== id),
+  ])
+}
+export async function removePres(id: string): Promise<void> {
+  const list = await getPresList()
+  await kv().set(
+    PRES_KEY,
+    list.filter((p) => p.id !== id),
+  )
+}
+
 export async function loadDoc(id: string): Promise<PresentationDoc | null> {
   return await kv().get<PresentationDoc>(DOC_PREFIX + id)
 }

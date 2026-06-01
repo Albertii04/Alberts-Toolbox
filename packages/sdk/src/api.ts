@@ -80,6 +80,10 @@ export interface ToolboxApi {
   readonly authoring: {
     /** URL of the live (HMR) preview dev server; starts it on first call. */
     previewUrl(): Promise<string>;
+    /** Scaffold a new code presentation folder; returns its id. */
+    createPresentation(name: string): Promise<{ id: string }>;
+    /** Remove a presentation folder. */
+    deletePresentation(id: string): Promise<void>;
   };
 }
 

@@ -1,13 +1,24 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { getRecents, saveDoc, deleteDoc, type RecentEntry } from './documents/store'
-import { createStarterDoc } from './documents/format'
+import { getPresList, addPres, removePres, type PresEntry } from './documents/store'
 
-const recents = ref<RecentEntry[]>([])
+const recents = ref<PresEntry[]>([])
 const loading = ref(true)
+const busy = ref(false)
+
+const authoring = (
+  window as unknown as {
+    toolbox?: {
+      authoring?: {
+        createPresentation(name: string): Promise<{ id: string }>
+        deletePresentation(id: string): Promise<void>
+      }
+    }
+  }
+).toolbox?.authoring
 
 onMounted(async () => {
-  recents.value = await getRecents()
+  recents.value = await getPresList()
   loading.value = false
 })
 
@@ -20,25 +31,36 @@ function fmtDate(iso: string): string {
 }
 
 async function nueva(): Promise<void> {
-  const doc = createStarterDoc('Nueva presentación')
-  await saveDoc(doc)
-  location.search = `?edit=${doc.id}`
+  if (!authoring) {
+    alert('Crear presentaciones solo está disponible dentro del shell.')
+    return
+  }
+  busy.value = true
+  try {
+    const { id } = await authoring.createPresentation('Nueva presentación')
+    await addPres(id, 'Nueva presentación')
+    location.search = `?preview=${id}`
+  } catch (e) {
+    alert('No se pudo crear la presentación: ' + (e as Error).message)
+    busy.value = false
+  }
 }
-function openDoc(id: string): void {
-  location.search = `?doc=${id}`
-}
-function editDoc(id: string): void {
-  location.search = `?edit=${id}`
+function openPres(id: string): void {
+  location.search = `?preview=${id}`
 }
 function openExample(): void {
   location.search = '?pres=concep-deck'
 }
-function openLive(id: string): void {
-  location.search = `?preview=${id}`
-}
 async function remove(id: string): Promise<void> {
-  await deleteDoc(id)
-  recents.value = await getRecents()
+  if (authoring && id.startsWith('u-')) {
+    try {
+      await authoring.deletePresentation(id)
+    } catch {
+      /* folder may already be gone */
+    }
+  }
+  await removePres(id)
+  recents.value = await getPresList()
 }
 </script>
 
@@ -51,19 +73,17 @@ async function remove(id: string): Promise<void> {
       </header>
 
       <div class="actions">
-        <button class="action primary" @click="nueva">
-          <span class="plus">+</span> Nueva presentación
+        <button class="action primary" :disabled="busy" @click="nueva">
+          <span class="plus">+</span> {{ busy ? 'Creando…' : 'Nueva presentación' }}
         </button>
         <button class="action" disabled title="Próximamente">Importar .zip</button>
-        <button class="action" disabled title="Próximamente">Exportar</button>
       </div>
 
       <section class="block">
         <div class="block-label">Recientes</div>
         <div v-if="!loading && recents.length" class="grid">
-          <div v-for="r in recents" :key="r.id" class="card" @click="openDoc(r.id)">
+          <div v-for="r in recents" :key="r.id" class="card" @click="openPres(r.id)">
             <div class="card-ctl">
-              <button title="Editar" @click.stop="editDoc(r.id)">✎</button>
               <button title="Eliminar" @click.stop="remove(r.id)">✕</button>
             </div>
             <div class="thumb"><span>{{ r.name.slice(0, 1).toUpperCase() }}</span></div>
@@ -81,7 +101,7 @@ async function remove(id: string): Promise<void> {
         <div class="grid">
           <div class="card" @click="openExample">
             <div class="card-ctl">
-              <button title="Vista en vivo (HMR)" @click.stop="openLive('concep-deck')">⚡</button>
+              <button title="Vista en vivo (HMR)" @click.stop="openPres('concep-deck')">⚡</button>
             </div>
             <div class="thumb example"><span>C</span></div>
             <div class="card-name">De CAD a render con IA</div>

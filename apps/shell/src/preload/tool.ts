@@ -42,6 +42,8 @@ const api: ToolboxApi = {
   },
   authoring: {
     previewUrl: () => ipcRenderer.invoke(IPC.authoringPreviewUrl),
+    createPresentation: (name) => ipcRenderer.invoke(IPC.authoringCreate, name),
+    deletePresentation: (id) => ipcRenderer.invoke(IPC.authoringDelete, id),
   },
 }
 

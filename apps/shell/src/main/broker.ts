@@ -9,7 +9,7 @@ import {
   type ToolManifest,
 } from '@toolbox/sdk'
 import { toolStorage } from './storage.js'
-import { getPreviewUrl } from './authoring.js'
+import { createPresentation, deletePresentation, getPreviewUrl } from './authoring.js'
 
 type ToolSource = 'builtin' | 'installed'
 
@@ -146,5 +146,13 @@ export function installBroker(): void {
   ipcMain.handle(IPC.authoringPreviewUrl, (e) => {
     authorize(e.sender.id, 'authoring')
     return getPreviewUrl()
+  })
+  ipcMain.handle(IPC.authoringCreate, (e, name: string) => {
+    authorize(e.sender.id, 'authoring')
+    return createPresentation(name)
+  })
+  ipcMain.handle(IPC.authoringDelete, (e, id: string) => {
+    authorize(e.sender.id, 'authoring')
+    return deletePresentation(id)
   })
 }
