@@ -76,6 +76,11 @@ export interface ToolboxApi {
   readonly notifications: {
     show(title: string, body?: string): Promise<void>;
   };
+  /** capability: authoring — privileged authoring host (dev server, AI editing). */
+  readonly authoring: {
+    /** URL of the live (HMR) preview dev server; starts it on first call. */
+    previewUrl(): Promise<string>;
+  };
 }
 
 declare global {

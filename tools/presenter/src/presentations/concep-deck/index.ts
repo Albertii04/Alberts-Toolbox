@@ -13,3 +13,5 @@ export const concepDeck: Presentation = {
   slides,
   theme,
 }
+
+export default concepDeck

@@ -40,6 +40,9 @@ const api: ToolboxApi = {
   notifications: {
     show: (title, body) => ipcRenderer.invoke(IPC.notify, title, body),
   },
+  authoring: {
+    previewUrl: () => ipcRenderer.invoke(IPC.authoringPreviewUrl),
+  },
 }
 
 contextBridge.exposeInMainWorld('toolbox', api)

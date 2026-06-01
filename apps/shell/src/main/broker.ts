@@ -9,6 +9,9 @@ import {
   type ToolManifest,
 } from '@toolbox/sdk'
 import { toolStorage } from './storage.js'
+import { getPreviewUrl } from './authoring.js'
+
+type ToolSource = 'builtin' | 'installed'
 
 /**
  * The capability broker. Maps each tool view's webContents to its manifest, and
@@ -16,22 +19,29 @@ import { toolStorage } from './storage.js'
  * A call from a tool without the declared capability rejects with
  * CAPABILITY_DENIED — this is the security spine of the whole shell.
  */
-const manifestByWc = new Map<number, ToolManifest>()
+const byWc = new Map<number, { manifest: ToolManifest; source: ToolSource }>()
 
-export function registerToolView(webContentsId: number, manifest: ToolManifest): void {
-  manifestByWc.set(webContentsId, manifest)
+export function registerToolView(
+  webContentsId: number,
+  manifest: ToolManifest,
+  source: ToolSource,
+): void {
+  byWc.set(webContentsId, { manifest, source })
 }
 
 export function unregisterToolView(webContentsId: number): void {
-  manifestByWc.delete(webContentsId)
+  byWc.delete(webContentsId)
 }
 
 function authorize(webContentsId: number, cap: CapabilityName): ToolManifest {
-  const manifest = manifestByWc.get(webContentsId)
-  if (!manifest) throw new Error(`${CAPABILITY_DENIED}: unknown caller`)
-  if (!hasCapability(manifest, cap))
-    throw new Error(`${CAPABILITY_DENIED}: tool "${manifest.id}" did not declare "${cap}"`)
-  return manifest
+  const entry = byWc.get(webContentsId)
+  if (!entry) throw new Error(`${CAPABILITY_DENIED}: unknown caller`)
+  if (!hasCapability(entry.manifest, cap))
+    throw new Error(`${CAPABILITY_DENIED}: tool "${entry.manifest.id}" did not declare "${cap}"`)
+  // 'authoring' is privileged (runs processes); first-party tools only.
+  if (cap === 'authoring' && entry.source !== 'builtin')
+    throw new Error(`${CAPABILITY_DENIED}: "authoring" is restricted to first-party tools`)
+  return entry.manifest
 }
 
 function hostAllowed(url: string, allowlist: string[]): boolean {
@@ -131,5 +141,10 @@ export function installBroker(): void {
   ipcMain.handle(IPC.notify, (e, title: string, body?: string) => {
     authorize(e.sender.id, 'notifications')
     new Notification({ title, body }).show()
+  })
+
+  ipcMain.handle(IPC.authoringPreviewUrl, (e) => {
+    authorize(e.sender.id, 'authoring')
+    return getPreviewUrl()
   })
 }
