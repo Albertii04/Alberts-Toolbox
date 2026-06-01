@@ -171,7 +171,7 @@ export class ToolManager {
       },
     })
     const wc = view.webContents
-    registerToolView(wc.id, tool.manifest)
+    registerToolView(wc.id, tool.manifest, tool.source)
     wc.on('destroyed', () => unregisterToolView(wc.id))
 
     // A tool may open its own windows (e.g. the Presenter audience view): allow

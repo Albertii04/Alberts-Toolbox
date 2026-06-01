@@ -2,6 +2,7 @@ import { BrowserWindow, app, ipcMain, nativeTheme, shell } from 'electron'
 import { join } from 'node:path'
 import windowStateKeeper from 'electron-window-state'
 import { installBroker } from './broker.js'
+import { stopAuthoring } from './authoring.js'
 import { ToolManager } from './tools.js'
 
 const manager = new ToolManager()
@@ -91,6 +92,8 @@ app.whenReady().then(async () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()
   })
 })
+
+app.on('will-quit', () => stopAuthoring())
 
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()

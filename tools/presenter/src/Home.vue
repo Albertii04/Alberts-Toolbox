@@ -33,6 +33,9 @@ function editDoc(id: string): void {
 function openExample(): void {
   location.search = '?pres=concep-deck'
 }
+function openLive(id: string): void {
+  location.search = `?preview=${id}`
+}
 async function remove(id: string): Promise<void> {
   await deleteDoc(id)
   recents.value = await getRecents()
@@ -77,6 +80,9 @@ async function remove(id: string): Promise<void> {
         <div class="block-label">Ejemplos</div>
         <div class="grid">
           <div class="card" @click="openExample">
+            <div class="card-ctl">
+              <button title="Vista en vivo (HMR)" @click.stop="openLive('concep-deck')">⚡</button>
+            </div>
             <div class="thumb example"><span>C</span></div>
             <div class="card-name">De CAD a render con IA</div>
             <div class="card-meta">Concep · Primlux</div>
