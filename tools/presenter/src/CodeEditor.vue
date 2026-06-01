@@ -16,6 +16,7 @@ interface ChatEvent {
 interface Authoring {
   previewUrl(): Promise<string>
   sendChat(presId: string, message: string): Promise<void>
+  stopChat(presId: string): Promise<void>
   onChat(cb: (e: ChatEvent) => void): () => void
 }
 
@@ -86,8 +87,13 @@ async function send(): Promise<void> {
     busy.value = false
   }
 }
+function stop(): void {
+  void authoring?.stopChat(props.presId)
+  busy.value = false
+  messages.value.push({ role: 'tool', text: 'Detenido.' })
+}
 function play(): void {
-  window.open(`?preview=${props.presId}`, '_blank')
+  location.search = `?preview=${props.presId}`
 }
 function goHome(): void {
   location.search = ''
@@ -128,7 +134,8 @@ function goHome(): void {
           placeholder="Escribe a Claude… (Enter envía, Shift+Enter salto de línea)"
           @keydown.enter.exact.prevent="send"
         />
-        <button class="ce-send" :disabled="busy || !input.trim()" @click="send">Enviar</button>
+        <button v-if="busy" class="ce-send stop" @click="stop">Parar</button>
+        <button v-else class="ce-send" :disabled="!input.trim()" @click="send">Enviar</button>
       </div>
     </aside>
 
@@ -273,6 +280,13 @@ function goHome(): void {
 }
 .ce-send:disabled {
   opacity: 0.4;
+}
+.ce-send.stop {
+  background: #7a2f2f;
+  border-color: #9a4040;
+}
+.ce-send.stop:hover {
+  background: #8a3636;
 }
 .ce-preview {
   background: var(--slate-950);

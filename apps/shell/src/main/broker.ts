@@ -10,7 +10,13 @@ import {
   type ToolManifest,
 } from '@toolbox/sdk'
 import { toolStorage } from './storage.js'
-import { createPresentation, deletePresentation, getPreviewUrl, sendChat } from './authoring.js'
+import {
+  createPresentation,
+  deletePresentation,
+  getPreviewUrl,
+  sendChat,
+  stopChat,
+} from './authoring.js'
 
 type ToolSource = 'builtin' | 'installed'
 
@@ -161,5 +167,9 @@ export function installBroker(): void {
     return sendChat(presId, message, (ev) => {
       if (!e.sender.isDestroyed()) e.sender.send(AUTHORING_CHAT_EVENT, { presId, ...ev })
     })
+  })
+  ipcMain.handle(IPC.authoringStop, (e, presId: string) => {
+    authorize(e.sender.id, 'authoring')
+    stopChat(presId)
   })
 }

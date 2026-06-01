@@ -45,6 +45,7 @@ const api: ToolboxApi = {
     createPresentation: (name) => ipcRenderer.invoke(IPC.authoringCreate, name),
     deletePresentation: (id) => ipcRenderer.invoke(IPC.authoringDelete, id),
     sendChat: (presId, message) => ipcRenderer.invoke(IPC.authoringChat, presId, message),
+    stopChat: (presId) => ipcRenderer.invoke(IPC.authoringStop, presId),
     onChat: (cb) => {
       const listener = (_e: unknown, ev: Parameters<typeof cb>[0]): void => cb(ev)
       ipcRenderer.on(AUTHORING_CHAT_EVENT, listener)

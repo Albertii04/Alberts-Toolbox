@@ -10,5 +10,8 @@
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"]
+  "include": ["src/**/*.ts", "src/**/*.tsx", "src/**/*.vue"],
+  /* User presentations (Claude-authored, run via the dev server / HMR) are not
+     type-checked — they shouldn't be able to break the tool's build. */
+  "exclude": ["src/presentations/u-*"]
 }
