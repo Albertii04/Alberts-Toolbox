@@ -76,7 +76,7 @@ export function sendChat(
       'stream-json',
       '--verbose',
       '--allowedTools',
-      'Read,Edit,Write,Glob,Grep',
+      'Read,Edit,Write,Glob,Grep,WebFetch',
       '--permission-mode',
       'acceptEdits',
     ]
