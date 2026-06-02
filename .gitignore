@@ -26,3 +26,6 @@ apps/shell/out/
 
 # user-created presentation folders (live in the source tree during dev authoring)
 tools/presenter/src/presentations/u-*/
+
+# AI-grown block library (saved by Claude across sessions)
+tools/presenter/blocks-user/

@@ -61,3 +61,11 @@ Each folder has the component(s) and a `block.md` with the exact wiring recipe
 (imports, state key, defineExpose, and the `controls` line for `slides.ts`).
 Copy the component into the presentation's `slides/` or a `components/` dir, then
 follow the recipe. Adapt freely — these are starting points, not constraints.
+
+## Growing the library
+
+There's also a sibling **`blocks-user/`** folder (writable) with blocks saved in
+previous sessions — check it too. When you build something **new and reusable**
+that isn't covered here, save it to `blocks-user/<short-name>/` as a component +
+`block.md` (same format as above), so it can be reused next time. The library
+learns from use.

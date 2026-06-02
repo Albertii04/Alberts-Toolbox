@@ -1,4 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
+import { mkdirSync } from 'node:fs'
 import { cp, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -83,13 +84,22 @@ export function sendChat(
   return new Promise((resolveP) => {
     const folder = join(presentationsDir(), presId)
     const blocks = join(presenterDir(), 'blocks')
+    // A writable, self-growing library where Claude saves new reusable blocks.
+    const userBlocks = join(presenterDir(), 'blocks-user')
+    mkdirSync(userBlocks, { recursive: true })
     const prev = sessionByPres.get(presId)
 
     // On the first turn of a session, prepend a preamble pointing Claude at the
-    // engine contract + the reusable block library. Later turns resume context.
+    // engine contract + the block libraries. Later turns resume context.
     const prompt = prev
       ? message
-      : `Estás editando una presentación de código (Vue 3 + GSAP) sobre el engine de Presenter, en la carpeta actual (cwd). Si existe una carpeta source/, contiene material de referencia del usuario (imágenes, archivos, código) — úsalo. Hay una librería de bloques reutilizables en ${blocks}: LEE primero ${blocks}/INDEX.md (contrato del engine: SlideEntry, controls, useSliderState, defineExpose) y reutiliza los bloques que encajen copiándolos y siguiendo su block.md, en vez de reinventar la integración con el presenter. Petición del usuario: ${message}`
+      : `Estás editando una presentación de código (Vue 3 + GSAP) sobre el engine de Presenter, en la carpeta actual (cwd). Si existe una carpeta source/, contiene material de referencia del usuario (imágenes, archivos, código) — úsalo.
+
+Hay dos librerías de bloques reutilizables: ${blocks} (oficiales) y ${userBlocks} (guardados de sesiones anteriores). LEE primero ${blocks}/INDEX.md (contrato del engine: SlideEntry, controls, useSliderState, defineExpose) y revisa ambas carpetas. Reutiliza los bloques que encajen copiándolos a la presentación y siguiendo su block.md, en vez de reinventar la integración con el presenter.
+
+Si lo que pide el usuario NO existe como bloque y construyes algo nuevo que sea reutilizable, GUÁRDALO también como bloque en ${userBlocks}/<nombre-corto>/ (el componente .vue + un block.md con la receta de wiring: imports, useSliderState key, defineExpose, y el descriptor controls para slides.ts), para poder reutilizarlo en el futuro.
+
+Petición del usuario: ${message}`
 
     const args = [
       '-p',
@@ -99,6 +109,8 @@ export function sendChat(
       '--verbose',
       '--add-dir',
       blocks,
+      '--add-dir',
+      userBlocks,
       '--allowedTools',
       'Read,Edit,Write,Glob,Grep,WebFetch',
       '--permission-mode',
