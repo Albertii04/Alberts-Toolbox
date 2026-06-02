@@ -60,6 +60,17 @@ export async function removePres(id: string): Promise<void> {
   )
 }
 
+// Initial onboarding prompt for a freshly-created presentation; the editor
+// auto-sends it to Claude on first open, then it's cleared.
+export async function setPendingPrompt(id: string, text: string): Promise<void> {
+  await kv().set(`pending:${id}`, text)
+}
+export async function takePendingPrompt(id: string): Promise<string | null> {
+  const text = await kv().get<string>(`pending:${id}`)
+  if (text) await kv().set(`pending:${id}`, null)
+  return text
+}
+
 export async function loadDoc(id: string): Promise<PresentationDoc | null> {
   return await kv().get<PresentationDoc>(DOC_PREFIX + id)
 }

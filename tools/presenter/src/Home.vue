@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { getPresList, addPres, removePres, type PresEntry } from './documents/store'
+import { getPresList, removePres, type PresEntry } from './documents/store'
 
 const recents = ref<PresEntry[]>([])
 const loading = ref(true)
@@ -30,20 +30,8 @@ function fmtDate(iso: string): string {
   }
 }
 
-async function nueva(): Promise<void> {
-  if (!authoring) {
-    alert('Crear presentaciones solo está disponible dentro del shell.')
-    return
-  }
-  busy.value = true
-  try {
-    const { id } = await authoring.createPresentation('Nueva presentación')
-    await addPres(id, 'Nueva presentación')
-    location.search = `?edit=${id}`
-  } catch (e) {
-    alert('No se pudo crear la presentación: ' + (e as Error).message)
-    busy.value = false
-  }
+function nueva(): void {
+  location.search = '?new'
 }
 function openPres(id: string): void {
   location.search = `?preview=${id}`

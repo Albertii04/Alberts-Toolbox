@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
+import { takePendingPrompt } from './documents/store'
 
 const props = defineProps<{ presId: string }>()
 
@@ -70,6 +71,13 @@ onMounted(async () => {
     previewUrl.value = `${base}?pres=${props.presId}&nav=1`
   } catch {
     /* preview may be unavailable */
+  }
+
+  // Freshly created from onboarding? Auto-send the brief to Claude.
+  const pending = await takePendingPrompt(props.presId)
+  if (pending) {
+    input.value = pending
+    await send()
   }
 })
 

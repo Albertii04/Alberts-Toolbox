@@ -4,6 +4,7 @@ import { AudienceDeck, PresenterConsole } from './engine'
 import { getPresentation } from './presentations'
 import type { Presentation } from './engine/types'
 import Home from './Home.vue'
+import Onboarding from './Onboarding.vue'
 import CodeEditor from './CodeEditor.vue'
 import LivePreview from './LivePreview.vue'
 
@@ -29,6 +30,11 @@ function boot(): void {
   if (previewId) {
     document.title = 'Vista en vivo'
     createApp(LivePreview, { presId: previewId }).mount('#app')
+    return
+  }
+  if (params.has('new')) {
+    document.title = 'Nueva presentación'
+    createApp(Onboarding).mount('#app')
     return
   }
   const editId = params.get('edit')
