@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { computed, ref } from 'vue'
 import { addPres, setPendingPrompt } from './documents/store'
 
 interface Authoring {
   createPresentation(name: string): Promise<{ id: string }>
+  pickFolder(): Promise<string | null>
+  attachFolder(presId: string, srcPath: string): Promise<void>
 }
 const authoring = (window as unknown as { toolbox?: { authoring?: Authoring } }).toolbox?.authoring
 
@@ -11,8 +13,17 @@ const name = ref('')
 const goal = ref('')
 const audience = ref('')
 const design = ref('')
+const folderPath = ref('')
 const busy = ref(false)
 const error = ref('')
+
+const folderName = computed(() => folderPath.value.split('/').filter(Boolean).pop() ?? '')
+
+async function pickFolder(): Promise<void> {
+  if (!authoring) return
+  const p = await authoring.pickFolder()
+  if (p) folderPath.value = p
+}
 
 function buildPrompt(title: string): string {
   const parts: string[] = []
@@ -26,6 +37,11 @@ function buildPrompt(title: string): string {
         `La referencia contiene enlaces: ábrelos con WebFetch y extrae colores, tipografía y estilo visual para aplicarlos.`,
       )
     }
+  }
+  if (folderPath.value) {
+    parts.push(
+      `Hay material de referencia adjunto en la carpeta source/ de la presentación (imágenes, archivos, código): explórala con Glob/Read y ÚSALA — importa imágenes con Vite (ej. import img from './source/foto.jpg'), extrae datos, textos y código de ahí, y basa la presentación en ese contenido.`,
+    )
   }
   parts.push(
     `Crea las slides necesarias, con jerarquía clara, y que quede moderna y coherente. Usa los tokens de tema del engine donde tenga sentido.`,
@@ -43,6 +59,7 @@ async function crear(): Promise<void> {
   error.value = ''
   try {
     const { id } = await authoring.createPresentation(title)
+    if (folderPath.value) await authoring.attachFolder(id, folderPath.value)
     await addPres(id, title)
     await setPendingPrompt(id, buildPrompt(title))
     location.search = `?edit=${id}`
@@ -88,6 +105,15 @@ function cancel(): void {
             placeholder="Pega un diseño de Claude, un enlace (web de terceros, Claude design…) o describe el estilo. Si pones un link, Claude lo abre y extrae paleta/tipografía/estilo."
           />
         </label>
+        <div class="field span2">
+          <span>Adjuntar carpeta <em>(opcional — fotos, archivos, código)</em></span>
+          <div class="attach">
+            <button type="button" class="attach-btn" @click="pickFolder">
+              {{ folderName ? '📁 ' + folderName : 'Elegir carpeta…' }}
+            </button>
+            <button v-if="folderName" type="button" class="attach-clear" title="Quitar" @click="folderPath = ''">✕</button>
+          </div>
+        </div>
       </div>
 
       <p v-if="error" class="error">{{ error }}</p>
@@ -175,6 +201,31 @@ function cancel(): void {
 .field input:focus,
 .field textarea:focus {
   border-color: var(--brand-500);
+}
+.attach {
+  display: flex;
+  gap: 0.4rem;
+  align-items: center;
+}
+.attach-btn {
+  flex: 1;
+  text-align: left;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px dashed var(--rule);
+  border-radius: 4px;
+  padding: 0.55rem 0.65rem;
+  color: var(--slate-300);
+  font-size: 0.85rem;
+}
+.attach-btn:hover {
+  border-color: var(--brand-500);
+}
+.attach-clear {
+  width: 2rem;
+  height: 2rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  color: var(--fg-muted);
 }
 .error {
   margin-top: 0.9rem;
