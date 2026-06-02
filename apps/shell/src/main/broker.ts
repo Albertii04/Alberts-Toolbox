@@ -11,9 +11,11 @@ import {
 } from '@toolbox/sdk'
 import { toolStorage } from './storage.js'
 import {
+  attachFolder,
   createPresentation,
   deletePresentation,
   getPreviewUrl,
+  pickFolder,
   sendChat,
   stopChat,
 } from './authoring.js'
@@ -171,5 +173,13 @@ export function installBroker(): void {
   ipcMain.handle(IPC.authoringStop, (e, presId: string) => {
     authorize(e.sender.id, 'authoring')
     stopChat(presId)
+  })
+  ipcMain.handle(IPC.authoringPickFolder, (e) => {
+    authorize(e.sender.id, 'authoring')
+    return pickFolder()
+  })
+  ipcMain.handle(IPC.authoringAttach, (e, presId: string, srcPath: string) => {
+    authorize(e.sender.id, 'authoring')
+    return attachFolder(presId, srcPath)
   })
 }

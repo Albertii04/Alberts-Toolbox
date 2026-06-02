@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { cp, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
-import { app } from 'electron'
+import { app, dialog } from 'electron'
 
 /**
  * Privileged authoring host: runs a single Vite dev server for the Presenter so
@@ -40,6 +40,19 @@ export async function createPresentation(name: string): Promise<{ id: string }> 
 export async function deletePresentation(id: string): Promise<void> {
   if (!id.startsWith(USER_PREFIX)) throw new Error('refusing to delete a non-user presentation')
   await rm(join(presentationsDir(), id), { recursive: true, force: true })
+}
+
+/** Native folder picker; returns the chosen path or null. */
+export async function pickFolder(): Promise<string | null> {
+  const res = await dialog.showOpenDialog({ properties: ['openDirectory'] })
+  return res.canceled || !res.filePaths[0] ? null : res.filePaths[0]
+}
+
+/** Copy reference material into the presentation's source/ dir, so Claude can
+ *  read images, files and code from it while building the presentation. */
+export async function attachFolder(presId: string, srcPath: string): Promise<void> {
+  if (!presId.startsWith(USER_PREFIX)) throw new Error('invalid presentation')
+  await cp(srcPath, join(presentationsDir(), presId, 'source'), { recursive: true })
 }
 
 // ---- AI editor (Claude Code) ----
