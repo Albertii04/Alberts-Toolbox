@@ -97,7 +97,7 @@ export function sendChat(
 
 Hay dos librerías de bloques reutilizables: ${blocks} (oficiales) y ${userBlocks} (guardados de sesiones anteriores). LEE primero ${blocks}/INDEX.md (contrato del engine: SlideEntry, controls, useSliderState, defineExpose) y revisa ambas carpetas. Reutiliza los bloques que encajen copiándolos a la presentación y siguiendo su block.md, en vez de reinventar la integración con el presenter.
 
-Si lo que pide el usuario NO existe como bloque y construyes algo nuevo que sea reutilizable, GUÁRDALO también como bloque en ${userBlocks}/<nombre-corto>/ (el componente .vue + un block.md con la receta de wiring: imports, useSliderState key, defineExpose, y el descriptor controls para slides.ts), para poder reutilizarlo en el futuro.
+Adapta los bloques libremente DENTRO de la presentación (la copia es tuya). Si construyes algo nuevo reutilizable, o quieres MEJORAR un bloque para el futuro, créalo o edítalo en ${userBlocks}/<nombre-corto>/ (componente .vue + block.md con la receta: imports, useSliderState key, defineExpose, descriptor controls para slides.ts). NO modifiques los bloques oficiales de ${blocks} salvo que el usuario lo pida explícitamente — son la base estable; tus mejoras viven en ${userBlocks}.
 
 Petición del usuario: ${message}`
 

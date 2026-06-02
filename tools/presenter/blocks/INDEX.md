@@ -69,3 +69,8 @@ previous sessions — check it too. When you build something **new and reusable*
 that isn't covered here, save it to `blocks-user/<short-name>/` as a component +
 `block.md` (same format as above), so it can be reused next time. The library
 learns from use.
+
+You can adapt any block freely **inside a presentation** (the copy is yours). If
+you want to **improve a block** for future use, create or edit the improved
+version in `blocks-user/` — keep the official blocks here as a stable baseline;
+only edit them if the user explicitly asks.
