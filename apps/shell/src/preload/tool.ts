@@ -46,7 +46,8 @@ const api: ToolboxApi = {
     deletePresentation: (id) => ipcRenderer.invoke(IPC.authoringDelete, id),
     pickFolder: () => ipcRenderer.invoke(IPC.authoringPickFolder),
     attachFolder: (presId, srcPath) => ipcRenderer.invoke(IPC.authoringAttach, presId, srcPath),
-    sendChat: (presId, message) => ipcRenderer.invoke(IPC.authoringChat, presId, message),
+    sendChat: (presId, message, allowEdits) =>
+      ipcRenderer.invoke(IPC.authoringChat, presId, message, allowEdits),
     stopChat: (presId) => ipcRenderer.invoke(IPC.authoringStop, presId),
     onChat: (cb) => {
       const listener = (_e: unknown, ev: Parameters<typeof cb>[0]): void => cb(ev)

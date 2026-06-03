@@ -91,7 +91,7 @@ export interface ToolboxApi {
     /** Send a chat message to the AI editor (Claude Code) for a presentation;
      *  it edits the folder's code. Resolves when the turn finishes. Stream
      *  progress via onChat. */
-    sendChat(presId: string, message: string): Promise<void>;
+    sendChat(presId: string, message: string, allowEdits?: boolean): Promise<void>;
     /** Stop the running AI editor turn for a presentation. */
     stopChat(presId: string): Promise<void>;
     /** Subscribe to AI editor chat events. Returns an unsubscribe fn. */

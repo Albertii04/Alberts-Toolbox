@@ -5,6 +5,8 @@ import { getPresList, removePres, type PresEntry } from './documents/store'
 const recents = ref<PresEntry[]>([])
 const loading = ref(true)
 const busy = ref(false)
+const pendingDelete = ref<PresEntry | null>(null)
+const confirmText = ref('')
 
 const authoring = (
   window as unknown as {
@@ -42,16 +44,27 @@ function openEdit(id: string): void {
 function openExample(): void {
   location.search = '?pres=concep-deck'
 }
-async function remove(id: string): Promise<void> {
-  if (authoring && id.startsWith('u-')) {
+function askDelete(entry: PresEntry): void {
+  pendingDelete.value = entry
+  confirmText.value = ''
+}
+function cancelDelete(): void {
+  pendingDelete.value = null
+  confirmText.value = ''
+}
+async function confirmDelete(): Promise<void> {
+  const entry = pendingDelete.value
+  if (!entry || confirmText.value.trim() !== entry.name) return
+  if (authoring && entry.id.startsWith('u-')) {
     try {
-      await authoring.deletePresentation(id)
+      await authoring.deletePresentation(entry.id)
     } catch {
       /* folder may already be gone */
     }
   }
-  await removePres(id)
+  await removePres(entry.id)
   recents.value = await getPresList()
+  cancelDelete()
 }
 </script>
 
@@ -76,7 +89,7 @@ async function remove(id: string): Promise<void> {
           <div v-for="r in recents" :key="r.id" class="card" @click="openEdit(r.id)">
             <div class="card-ctl">
               <button title="Vista en vivo" @click.stop="openPres(r.id)">⚡</button>
-              <button title="Eliminar" @click.stop="remove(r.id)">✕</button>
+              <button title="Eliminar" @click.stop="askDelete(r)">✕</button>
             </div>
             <div class="thumb"><span>{{ r.name.slice(0, 1).toUpperCase() }}</span></div>
             <div class="card-name">{{ r.name }}</div>
@@ -101,6 +114,33 @@ async function remove(id: string): Promise<void> {
           </div>
         </div>
       </section>
+    </div>
+
+    <div v-if="pendingDelete" class="modal-bg" @click.self="cancelDelete">
+      <div class="modal">
+        <h2>Eliminar presentación</h2>
+        <p>
+          Esto borra la carpeta de <strong>{{ pendingDelete.name }}</strong> de forma permanente.
+          No se puede deshacer.
+        </p>
+        <p class="modal-hint">Escribe <strong>{{ pendingDelete.name }}</strong> para confirmar:</p>
+        <input
+          v-model="confirmText"
+          :placeholder="pendingDelete.name"
+          autofocus
+          @keydown.enter="confirmDelete"
+        />
+        <div class="modal-actions">
+          <button class="btn" @click="cancelDelete">Cancelar</button>
+          <button
+            class="btn danger"
+            :disabled="confirmText.trim() !== pendingDelete.name"
+            @click="confirmDelete"
+          >
+            Eliminar
+          </button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -258,5 +298,77 @@ async function remove(id: string): Promise<void> {
 .empty strong {
   color: var(--slate-300);
   font-weight: 500;
+}
+.modal-bg {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 6, 11, 0.7);
+  backdrop-filter: blur(4px);
+  display: grid;
+  place-items: center;
+  z-index: 50;
+}
+.modal {
+  width: 100%;
+  max-width: 26rem;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--slate-950);
+  padding: 1.5rem;
+}
+.modal h2 {
+  font-size: 1.1rem;
+  font-weight: 500;
+  color: var(--fg-primary);
+  margin-bottom: 0.6rem;
+}
+.modal p {
+  font-size: 0.85rem;
+  color: var(--slate-300);
+  line-height: 1.5;
+  margin-bottom: 0.6rem;
+}
+.modal-hint {
+  color: var(--fg-muted);
+}
+.modal input {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  padding: 0.55rem 0.65rem;
+  color: var(--fg-primary);
+  font-size: 0.9rem;
+  outline: none;
+}
+.modal input:focus {
+  border-color: var(--brand-500);
+}
+.modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+.modal .btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  font-size: 0.85rem;
+  color: var(--slate-300);
+}
+.modal .btn:hover {
+  border-color: rgba(148, 168, 202, 0.5);
+}
+.modal .btn.danger {
+  background: #7a2f2f;
+  border-color: #9a4040;
+  color: #fff;
+}
+.modal .btn.danger:hover:not(:disabled) {
+  background: #8a3636;
+}
+.modal .btn.danger:disabled {
+  opacity: 0.4;
 }
 </style>

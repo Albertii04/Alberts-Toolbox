@@ -16,7 +16,7 @@ interface ChatEvent {
 }
 interface Authoring {
   previewUrl(): Promise<string>
-  sendChat(presId: string, message: string): Promise<void>
+  sendChat(presId: string, message: string, allowEdits?: boolean): Promise<void>
   stopChat(presId: string): Promise<void>
   onChat(cb: (e: ChatEvent) => void): () => void
 }
@@ -26,6 +26,8 @@ const authoring = (window as unknown as { toolbox?: { authoring?: Authoring } })
 const messages = ref<Msg[]>([])
 const input = ref('')
 const busy = ref(false)
+// 'plan' = Claude analyses + proposes (no edits) until the user hits Implementar.
+const phase = ref<'plan' | 'build'>('build')
 const previewUrl = ref('')
 const scroller = ref<HTMLElement | null>(null)
 const frame = ref<HTMLIFrameElement | null>(null)
@@ -73,27 +75,38 @@ onMounted(async () => {
     /* preview may be unavailable */
   }
 
-  // Freshly created from onboarding? Auto-send the brief to Claude.
+  // Freshly created from onboarding? Start in PLAN mode and analyse the brief.
   const pending = await takePendingPrompt(props.presId)
   if (pending) {
-    input.value = pending
-    await send()
+    phase.value = 'plan'
+    await doSend(pending)
   }
 })
 
-async function send(): Promise<void> {
-  const text = input.value.trim()
-  if (!text || busy.value || !authoring) return
+async function doSend(text: string): Promise<void> {
+  if (!text.trim() || busy.value || !authoring) return
   messages.value.push({ role: 'user', text })
-  input.value = ''
   busy.value = true
   scroll()
   try {
-    await authoring.sendChat(props.presId, text)
+    await authoring.sendChat(props.presId, text, phase.value === 'build')
   } catch (e) {
     messages.value.push({ role: 'error', text: String(e) })
     busy.value = false
   }
+}
+function send(): void {
+  const text = input.value.trim()
+  if (!text) return
+  input.value = ''
+  void doSend(text)
+}
+function implementar(): void {
+  if (busy.value) return
+  phase.value = 'build'
+  void doSend(
+    'Implementa el plan que acordamos: construye las slides, componentes y el tema, reutilizando los bloques propuestos. Crea todos los archivos necesarios.',
+  )
 }
 function stop(): void {
   void authoring?.stopChat(props.presId)
@@ -113,7 +126,7 @@ function goHome(): void {
     <aside class="ce-chat">
       <header class="ce-head">
         <button class="ce-btn" @click="goHome">‹ Inicio</button>
-        <span class="ce-title">Editor · IA</span>
+        <span class="ce-title">{{ phase === 'plan' ? 'Planificando' : 'Editor · IA' }}</span>
         <button class="ce-btn" @click="play">Reproducir ↗</button>
       </header>
 
@@ -135,11 +148,16 @@ function goHome(): void {
         <div v-if="busy" class="ce-msg tool"><span class="ce-tool">Claude trabajando…</span></div>
       </div>
 
+      <div v-if="phase === 'plan'" class="ce-plan">
+        <span>Claude propone el plan. Coméntalo si quieres y, cuando estés listo:</span>
+        <button class="ce-impl" :disabled="busy" @click="implementar">Implementar →</button>
+      </div>
+
       <div class="ce-input">
         <textarea
           v-model="input"
           rows="2"
-          placeholder="Escribe a Claude… (Enter envía, Shift+Enter salto de línea)"
+          :placeholder="phase === 'plan' ? 'Comenta o ajusta el plan…' : 'Escribe a Claude… (Enter envía)'"
           @keydown.enter.exact.prevent="send"
         />
         <button v-if="busy" class="ce-send stop" @click="stop">Parar</button>
@@ -295,6 +313,36 @@ function goHome(): void {
 }
 .ce-send.stop:hover {
   background: #8a3636;
+}
+.ce-plan {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.7rem;
+  border-top: 1px solid var(--rule);
+  background: rgba(85, 111, 158, 0.12);
+  font-size: 0.72rem;
+  color: var(--slate-300);
+}
+.ce-plan span {
+  flex: 1;
+  line-height: 1.4;
+}
+.ce-impl {
+  padding: 0.45rem 0.9rem;
+  background: var(--brand-600);
+  border: 1px solid var(--brand-500);
+  border-radius: 4px;
+  color: #fff;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.ce-impl:hover:not(:disabled) {
+  background: var(--brand-500);
+}
+.ce-impl:disabled {
+  opacity: 0.5;
 }
 .ce-preview {
   background: var(--slate-950);

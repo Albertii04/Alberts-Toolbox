@@ -164,11 +164,16 @@ export function installBroker(): void {
     authorize(e.sender.id, 'authoring')
     return deletePresentation(id)
   })
-  ipcMain.handle(IPC.authoringChat, (e, presId: string, message: string) => {
+  ipcMain.handle(IPC.authoringChat, (e, presId: string, message: string, allowEdits?: boolean) => {
     authorize(e.sender.id, 'authoring')
-    return sendChat(presId, message, (ev) => {
-      if (!e.sender.isDestroyed()) e.sender.send(AUTHORING_CHAT_EVENT, { presId, ...ev })
-    })
+    return sendChat(
+      presId,
+      message,
+      (ev) => {
+        if (!e.sender.isDestroyed()) e.sender.send(AUTHORING_CHAT_EVENT, { presId, ...ev })
+      },
+      allowEdits ?? true,
+    )
   })
   ipcMain.handle(IPC.authoringStop, (e, presId: string) => {
     authorize(e.sender.id, 'authoring')
