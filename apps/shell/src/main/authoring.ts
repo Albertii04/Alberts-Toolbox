@@ -80,6 +80,7 @@ export function sendChat(
   presId: string,
   message: string,
   emit: (e: ChatEvent) => void,
+  allowEdits = true,
 ): Promise<void> {
   return new Promise((resolveP) => {
     const folder = join(presentationsDir(), presId)
@@ -89,17 +90,20 @@ export function sendChat(
     mkdirSync(userBlocks, { recursive: true })
     const prev = sessionByPres.get(presId)
 
-    // On the first turn of a session, prepend a preamble pointing Claude at the
-    // engine contract + the block libraries. Later turns resume context.
-    const prompt = prev
-      ? message
-      : `Estás editando una presentación de código (Vue 3 + GSAP) sobre el engine de Presenter, en la carpeta actual (cwd). Si existe una carpeta source/, contiene material de referencia del usuario (imágenes, archivos, código) — úsalo.
+    const libsLine = `Hay dos librerías de bloques reutilizables: ${blocks} (oficiales) y ${userBlocks} (guardados de antes). LEE ${blocks}/INDEX.md (contrato del engine: SlideEntry, controls, useSliderState, defineExpose) y revisa ambas carpetas.`
 
-Hay dos librerías de bloques reutilizables: ${blocks} (oficiales) y ${userBlocks} (guardados de sesiones anteriores). LEE primero ${blocks}/INDEX.md (contrato del engine: SlideEntry, controls, useSliderState, defineExpose) y revisa ambas carpetas. Reutiliza los bloques que encajen copiándolos a la presentación y siguiendo su block.md, en vez de reinventar la integración con el presenter.
+    // First turn of a session: prepend a preamble. In PLAN mode (no edits) Claude
+    // analyses + proposes; in BUILD mode it edits/reuses blocks. Later turns resume.
+    let prompt = message
+    if (!prev) {
+      prompt = allowEdits
+        ? `Estás editando una presentación de código (Vue 3 + GSAP) sobre el engine de Presenter (cwd). Si existe source/, es material de referencia del usuario — úsalo. ${libsLine} Reutiliza los bloques que encajen copiándolos a la presentación y siguiendo su block.md. Guarda bloques nuevos reutilizables en ${userBlocks}/<nombre>/; NO modifiques los oficiales de ${blocks} salvo que el usuario lo pida. Petición del usuario: ${message}`
+        : `Estás PLANIFICANDO una presentación de código (Vue 3 + GSAP) sobre el engine de Presenter (cwd). Si existe source/, es material de referencia del usuario (imágenes, archivos, código): analízalo. ${libsLine} Tu tarea ahora: ANALIZA el material y PROPÓN un plan de slides concreto — para cada slide, di qué muestra y qué bloque de la librería usar (o si hace falta uno nuevo), y el estilo/tema. NO edites archivos todavía: solo analiza y propón, en texto. El usuario revisará y, cuando dé a "Implementar", lo construyes. Brief del usuario: ${message}`
+    }
 
-Adapta los bloques libremente DENTRO de la presentación (la copia es tuya). Si construyes algo nuevo reutilizable, o quieres MEJORAR un bloque para el futuro, créalo o edítalo en ${userBlocks}/<nombre-corto>/ (componente .vue + block.md con la receta: imports, useSliderState key, defineExpose, descriptor controls para slides.ts). NO modifiques los bloques oficiales de ${blocks} salvo que el usuario lo pida explícitamente — son la base estable; tus mejoras viven en ${userBlocks}.
-
-Petición del usuario: ${message}`
+    const tools = allowEdits
+      ? 'Read,Edit,Write,Glob,Grep,WebFetch'
+      : 'Read,Glob,Grep,WebFetch'
 
     const args = [
       '-p',
@@ -112,7 +116,7 @@ Petición del usuario: ${message}`
       '--add-dir',
       userBlocks,
       '--allowedTools',
-      'Read,Edit,Write,Glob,Grep,WebFetch',
+      tools,
       '--permission-mode',
       'acceptEdits',
     ]

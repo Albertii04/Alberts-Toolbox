@@ -27,25 +27,20 @@ async function pickFolder(): Promise<void> {
 
 function buildPrompt(title: string): string {
   const parts: string[] = []
-  parts.push(`Construye esta presentación de cero, editando los .vue de las slides, slides.ts, presentation.json (name="${title}") y el tema.`)
+  parts.push(`Título: ${title}.`)
   parts.push(`Tema/objetivo: ${goal.value.trim() || title}.`)
   if (audience.value.trim()) parts.push(`Audiencia: ${audience.value.trim()}.`)
   if (design.value.trim()) {
     parts.push(`Referencia de diseño (paleta, tipografía, estilo, layout): ${design.value.trim()}`)
     if (/https?:\/\//.test(design.value)) {
-      parts.push(
-        `La referencia contiene enlaces: ábrelos con WebFetch y extrae colores, tipografía y estilo visual para aplicarlos.`,
-      )
+      parts.push(`Si hay enlaces, ábrelos con WebFetch para extraer colores, tipografía y estilo.`)
     }
   }
   if (folderPath.value) {
     parts.push(
-      `Hay material de referencia adjunto en la carpeta source/ de la presentación (imágenes, archivos, código): explórala con Glob/Read y ÚSALA — importa imágenes con Vite (ej. import img from './source/foto.jpg'), extrae datos, textos y código de ahí, y basa la presentación en ese contenido.`,
+      `Hay material de referencia en la carpeta source/ (imágenes, archivos, código): explórala con Glob/Read y básate en ese contenido (las imágenes se importan con Vite, ej. import img from './source/foto.jpg').`,
     )
   }
-  parts.push(
-    `Crea las slides necesarias, con jerarquía clara, y que quede moderna y coherente. Usa los tokens de tema del engine donde tenga sentido.`,
-  )
   return parts.join(' ')
 }
 
