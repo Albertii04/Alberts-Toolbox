@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { nextTick, onMounted, ref } from 'vue'
-import { takePendingPrompt, takePendingFolder } from './documents/store'
+import { takePendingPrompt } from './documents/store'
 
 const props = defineProps<{ presId: string }>()
 
@@ -18,7 +18,6 @@ interface Authoring {
   previewUrl(): Promise<string>
   sendChat(presId: string, message: string, allowEdits?: boolean): Promise<void>
   stopChat(presId: string): Promise<void>
-  attachFolder(presId: string, srcPath: string): Promise<void>
   onChat(cb: (e: ChatEvent) => void): () => void
 }
 
@@ -76,20 +75,8 @@ onMounted(async () => {
     /* preview may be unavailable */
   }
 
-  // Freshly created from onboarding: copy attached material, then analyse.
-  const folder = await takePendingFolder(props.presId)
-  if (folder) {
-    messages.value.push({ role: 'tool', text: 'Copiando material adjunto…' })
-    busy.value = true
-    scroll()
-    try {
-      await authoring.attachFolder(props.presId, folder)
-      messages.value.push({ role: 'tool', text: 'Material listo en source/.' })
-    } catch {
-      messages.value.push({ role: 'error', text: 'No se pudo copiar el material.' })
-    }
-    busy.value = false
-  }
+  // Freshly created from onboarding: analyse the brief (the attached folder, if
+  // any, is read live via --add-dir — no copy step needed).
   const pending = await takePendingPrompt(props.presId)
   if (pending) {
     phase.value = 'plan'

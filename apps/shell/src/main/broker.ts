@@ -11,7 +11,7 @@ import {
 } from '@toolbox/sdk'
 import { toolStorage } from './storage.js'
 import {
-  attachFolder,
+  setSourcePath,
   createPresentation,
   deletePresentation,
   getPreviewUrl,
@@ -183,8 +183,8 @@ export function installBroker(): void {
     authorize(e.sender.id, 'authoring')
     return pickFolder()
   })
-  ipcMain.handle(IPC.authoringAttach, (e, presId: string, srcPath: string) => {
+  ipcMain.handle(IPC.authoringSetSource, (e, presId: string, srcPath: string) => {
     authorize(e.sender.id, 'authoring')
-    return attachFolder(presId, srcPath)
+    return setSourcePath(presId, srcPath)
   })
 }

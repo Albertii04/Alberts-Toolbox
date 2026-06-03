@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { addPres, setPendingPrompt, setPendingFolder } from './documents/store'
+import { addPres, setPendingPrompt } from './documents/store'
 
 interface Authoring {
   createPresentation(name: string): Promise<{ id: string }>
   pickFolder(): Promise<string | null>
+  setSourcePath(presId: string, srcPath: string): Promise<void>
 }
 const authoring = (window as unknown as { toolbox?: { authoring?: Authoring } }).toolbox?.authoring
 
@@ -35,11 +36,8 @@ function buildPrompt(title: string): string {
       parts.push(`Si hay enlaces, ábrelos con WebFetch para extraer colores, tipografía y estilo.`)
     }
   }
-  if (folderPath.value) {
-    parts.push(
-      `Hay material de referencia en la carpeta source/ (imágenes, archivos, código): explórala con Glob/Read y básate en ese contenido (las imágenes se importan con Vite, ej. import img from './source/foto.jpg').`,
-    )
-  }
+  // The attached folder is wired via setSourcePath + --add-dir; the host
+  // preamble tells Claude to read it in place, so no folder note here.
   return parts.join(' ')
 }
 
@@ -55,8 +53,9 @@ async function crear(): Promise<void> {
     const { id } = await authoring.createPresentation(title)
     await addPres(id, title)
     await setPendingPrompt(id, buildPrompt(title))
-    if (folderPath.value) await setPendingFolder(id, folderPath.value)
-    // Navigate immediately; the editor copies the folder + analyses with feedback.
+    // Register the folder (no copy) — Claude reads it live via --add-dir. Fast,
+    // so navigation is instant; the editor then runs the analysis.
+    if (folderPath.value) await authoring.setSourcePath(id, folderPath.value)
     location.search = `?edit=${id}`
   } catch (e) {
     error.value = 'No se pudo crear: ' + (e as Error).message

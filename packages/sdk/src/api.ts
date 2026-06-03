@@ -86,8 +86,9 @@ export interface ToolboxApi {
     deletePresentation(id: string): Promise<void>;
     /** Native folder picker; returns the chosen path or null. */
     pickFolder(): Promise<string | null>;
-    /** Copy a folder of reference material into the presentation's source/ dir. */
-    attachFolder(presId: string, srcPath: string): Promise<void>;
+    /** Register a reference folder Claude reads live (no copy); passed to its
+     *  --add-dir on every turn. Pass '' to clear it. */
+    setSourcePath(presId: string, srcPath: string): Promise<void>;
     /** Send a chat message to the AI editor (Claude Code) for a presentation;
      *  it edits the folder's code. Resolves when the turn finishes. Stream
      *  progress via onChat. */

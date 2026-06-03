@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, readFileSync } from 'node:fs'
 import { cp, rm, writeFile } from 'node:fs/promises'
 import { homedir } from 'node:os'
 import { join, resolve } from 'node:path'
@@ -49,11 +49,23 @@ export async function pickFolder(): Promise<string | null> {
   return res.canceled || !res.filePaths[0] ? null : res.filePaths[0]
 }
 
-/** Copy reference material into the presentation's source/ dir, so Claude can
- *  read images, files and code from it while building the presentation. */
-export async function attachFolder(presId: string, srcPath: string): Promise<void> {
+/** Register a reference folder Claude reads live (no copy). The path is stored
+ *  in the presentation and added to Claude's --add-dir on every turn, so it
+ *  reads the original in place — code, CLAUDE.md, design, images — and picks up
+ *  later changes with no duplication. Pass '' to clear it. */
+export async function setSourcePath(presId: string, srcPath: string): Promise<void> {
   if (!presId.startsWith(USER_PREFIX)) throw new Error('invalid presentation')
-  await cp(srcPath, join(presentationsDir(), presId, 'source'), { recursive: true })
+  await writeFile(join(presentationsDir(), presId, '.sourcepath'), srcPath.trim(), 'utf8')
+}
+
+/** The registered live source folder for a presentation, or null. */
+function sourcePathOf(presId: string): string | null {
+  try {
+    const p = readFileSync(join(presentationsDir(), presId, '.sourcepath'), 'utf8').trim()
+    return p || null
+  } catch {
+    return null
+  }
 }
 
 // ---- AI editor (Claude Code) ----
@@ -89,16 +101,23 @@ export function sendChat(
     const userBlocks = join(presenterDir(), 'blocks-user')
     mkdirSync(userBlocks, { recursive: true })
     const prev = sessionByPres.get(presId)
+    const source = sourcePathOf(presId)
 
     const libsLine = `Hay dos librerías de bloques reutilizables: ${blocks} (oficiales) y ${userBlocks} (guardados de antes). LEE ${blocks}/INDEX.md (contrato del engine: SlideEntry, controls, useSliderState, defineExpose) y revisa ambas carpetas.`
+    // The user's material is read IN PLACE (no copy): code, CLAUDE.md, diseño,
+    // textos, imágenes. Only the images actually used in slides get copied into
+    // the presentation, because Vite bundles assets from the project tree.
+    const sourceLine = source
+      ? `El material de referencia del usuario está en ${source} (carpeta añadida con acceso de lectura). LÉELO EN SITIO con Read/Glob/Grep — código, CLAUDE.md, diseño, textos, imágenes — y NO lo dupliques en la presentación. Excepción: para una imagen que vayas a MOSTRAR en una slide, cópiala a assets/ de la presentación e impórtala (Vite empaqueta desde el proyecto); el resto se queda donde está. Si el usuario añade cosas a esa carpeta luego, las verás en el siguiente turno.`
+      : ''
 
     // First turn of a session: prepend a preamble. In PLAN mode (no edits) Claude
     // analyses + proposes; in BUILD mode it edits/reuses blocks. Later turns resume.
     let prompt = message
     if (!prev) {
       prompt = allowEdits
-        ? `Estás editando una presentación de código (Vue 3 + GSAP) sobre el engine de Presenter (cwd). Si existe source/, es material de referencia del usuario — úsalo. ${libsLine} Reutiliza los bloques que encajen copiándolos a la presentación y siguiendo su block.md. Guarda bloques nuevos reutilizables en ${userBlocks}/<nombre>/; NO modifiques los oficiales de ${blocks} salvo que el usuario lo pida. Petición del usuario: ${message}`
-        : `Estás PLANIFICANDO una presentación de código (Vue 3 + GSAP) sobre el engine de Presenter (cwd). Si existe source/, es material de referencia del usuario (imágenes, archivos, código): analízalo. ${libsLine} Tu tarea ahora: ANALIZA el material y PROPÓN un plan de slides concreto — para cada slide, di qué muestra y qué bloque de la librería usar (o si hace falta uno nuevo), y el estilo/tema. NO edites archivos todavía: solo analiza y propón, en texto. El usuario revisará y, cuando dé a "Implementar", lo construyes. Brief del usuario: ${message}`
+        ? `Estás editando una presentación de código (Vue 3 + GSAP) sobre el engine de Presenter (cwd). ${sourceLine} ${libsLine} Reutiliza los bloques que encajen copiándolos a la presentación y siguiendo su block.md. Guarda bloques nuevos reutilizables en ${userBlocks}/<nombre>/; NO modifiques los oficiales de ${blocks} salvo que el usuario lo pida. Petición del usuario: ${message}`
+        : `Estás PLANIFICANDO una presentación de código (Vue 3 + GSAP) sobre el engine de Presenter (cwd). ${sourceLine} ${libsLine} Tu tarea ahora: ANALIZA el material y PROPÓN un plan de slides concreto — para cada slide, di qué muestra y qué bloque de la librería usar (o si hace falta uno nuevo), y el estilo/tema. NO edites archivos todavía: solo analiza y propón, en texto. El usuario revisará y, cuando dé a "Implementar", lo construyes. Brief del usuario: ${message}`
     }
 
     const tools = allowEdits
@@ -115,11 +134,9 @@ export function sendChat(
       blocks,
       '--add-dir',
       userBlocks,
-      '--allowedTools',
-      tools,
-      '--permission-mode',
-      'acceptEdits',
     ]
+    if (source) args.push('--add-dir', source)
+    args.push('--allowedTools', tools, '--permission-mode', 'acceptEdits')
     if (prev) args.push('--resume', prev)
 
     // Ensure ~/.local/bin (where `claude` lives) is on PATH.

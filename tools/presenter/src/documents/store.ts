@@ -71,16 +71,6 @@ export async function takePendingPrompt(id: string): Promise<string | null> {
   return text
 }
 
-// A reference folder to attach (copy into source/) on first open of the editor.
-export async function setPendingFolder(id: string, path: string): Promise<void> {
-  await kv().set(`pendfolder:${id}`, path)
-}
-export async function takePendingFolder(id: string): Promise<string | null> {
-  const path = await kv().get<string>(`pendfolder:${id}`)
-  if (path) await kv().set(`pendfolder:${id}`, null)
-  return path
-}
-
 export async function loadDoc(id: string): Promise<PresentationDoc | null> {
   return await kv().get<PresentationDoc>(DOC_PREFIX + id)
 }
