@@ -1,11 +1,10 @@
 <script setup lang="ts">
 import { computed, ref } from 'vue'
-import { addPres, setPendingPrompt } from './documents/store'
+import { addPres, setPendingPrompt, setPendingFolder } from './documents/store'
 
 interface Authoring {
   createPresentation(name: string): Promise<{ id: string }>
   pickFolder(): Promise<string | null>
-  attachFolder(presId: string, srcPath: string): Promise<void>
 }
 const authoring = (window as unknown as { toolbox?: { authoring?: Authoring } }).toolbox?.authoring
 
@@ -54,9 +53,10 @@ async function crear(): Promise<void> {
   error.value = ''
   try {
     const { id } = await authoring.createPresentation(title)
-    if (folderPath.value) await authoring.attachFolder(id, folderPath.value)
     await addPres(id, title)
     await setPendingPrompt(id, buildPrompt(title))
+    if (folderPath.value) await setPendingFolder(id, folderPath.value)
+    // Navigate immediately; the editor copies the folder + analyses with feedback.
     location.search = `?edit=${id}`
   } catch (e) {
     error.value = 'No se pudo crear: ' + (e as Error).message
