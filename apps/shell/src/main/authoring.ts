@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { cp, rm, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import { basename, join, resolve } from 'node:path'
@@ -113,7 +113,9 @@ export async function exportPresentation(presId: string): Promise<string | null>
   if (res.canceled || !res.filePath) return null
   const dest = res.filePath
 
-  const staging = join(tmpdir(), `toolbox-export-${presId}-${Date.now().toString(36)}`)
+  // mkdtemp creates a uniquely-named dir with safe perms (avoids predictable
+  // os-temp paths / symlink races).
+  const staging = mkdtempSync(join(tmpdir(), 'toolbox-export-'))
   const root = join(staging, slug)
   const src = join(root, 'src')
   mkdirSync(join(src, 'presentations'), { recursive: true })
@@ -259,12 +261,19 @@ const IMPORT_SKIP = /(^|\/)(node_modules|\.git|dist|attachments|__MACOSX)(\/|$)/
 function migrateLegacyTheme(deckDir: string): void {
   const cssPath = join(deckDir, 'theme.css')
   const idxPath = join(deckDir, 'index.ts')
-  if (!existsSync(cssPath) || !existsSync(idxPath)) return
-  const indexSrc = readFileSync(idxPath, 'utf8')
+  // Read directly and bail on failure instead of exists()-then-read (no TOCTOU).
+  let indexSrc: string
+  let cssRaw: string
+  try {
+    indexSrc = readFileSync(idxPath, 'utf8')
+    cssRaw = readFileSync(cssPath, 'utf8')
+  } catch {
+    return
+  }
   if (/--deck-bg/.test(indexSrc) || !/vars\s*:\s*\{/.test(indexSrc)) return
 
   let bg: string | null = null
-  const css = readFileSync(cssPath, 'utf8').replace(
+  const css = cssRaw.replace(
     /[^{}]*(?:\bbody\b|#app|\[data-deck\])[^{}]*\{[^}]*\}/g,
     (block) => {
       const m = block.match(/background\s*:\s*([^;]+);/)
@@ -354,8 +363,8 @@ export async function importPresentation(): Promise<
   const zipPath = res.filePaths[0]
   const fallbackName = basename(zipPath, '.zip') || 'Presentación importada'
 
-  const tmp = join(tmpdir(), `toolbox-import-${Date.now().toString(36)}`)
-  mkdirSync(tmp, { recursive: true })
+  // mkdtemp: unique dir, safe perms (avoids predictable os-temp paths/races).
+  const tmp = mkdtempSync(join(tmpdir(), 'toolbox-import-'))
   try {
     await new Promise<void>((resolveU, rejectU) => {
       const unzip = spawn('unzip', ['-q', '-o', zipPath, '-d', tmp])
@@ -366,7 +375,16 @@ export async function importPresentation(): Promise<
     })
 
     const deckRoot = findDeckRoot(tmp)
-    const isPerfect = !!deckRoot && existsSync(join(deckRoot, 'index.ts'))
+    // "Perfect" = the deck folder also has an index.ts. List the dir instead of
+    // an exists()-then-use check (avoids a TOCTOU file race).
+    const dirHas = (dir: string, file: string): boolean => {
+      try {
+        return readdirSync(dir).includes(file)
+      } catch {
+        return false
+      }
+    }
+    const isPerfect = !!deckRoot && dirHas(deckRoot, 'index.ts')
 
     if (isPerfect && deckRoot) {
       // Clean Presenter deck → copy straight in.
