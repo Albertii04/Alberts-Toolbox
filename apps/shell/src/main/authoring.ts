@@ -1,9 +1,9 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { mkdirSync, readFileSync } from 'node:fs'
+import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { cp, rm, writeFile } from 'node:fs/promises'
-import { homedir } from 'node:os'
-import { join, resolve } from 'node:path'
-import { app, dialog } from 'electron'
+import { homedir, tmpdir } from 'node:os'
+import { basename, join, resolve } from 'node:path'
+import { app, BrowserWindow, dialog } from 'electron'
 
 /**
  * Privileged authoring host: runs a single Vite dev server for the Presenter so
@@ -58,6 +58,365 @@ export async function setSourcePath(presId: string, srcPath: string): Promise<vo
   await writeFile(join(presentationsDir(), presId, '.sourcepath'), srcPath.trim(), 'utf8')
 }
 
+/** Save an attached file/image into the presentation's attachments/ folder so
+ *  the AI editor can Read it. Returns the absolute path of the saved file. */
+export async function saveAttachment(
+  presId: string,
+  name: string,
+  dataBase64: string,
+): Promise<string> {
+  if (!presId.startsWith(USER_PREFIX)) throw new Error('invalid presentation')
+  // Strip path separators so a crafted name can't escape the folder.
+  const safe = name.replace(/[/\\]/g, '_').replace(/^\.+/, '') || 'archivo'
+  const dir = join(presentationsDir(), presId, 'attachments')
+  mkdirSync(dir, { recursive: true })
+  const dest = join(dir, safe)
+  await writeFile(dest, Buffer.from(dataBase64, 'base64'))
+  return dest
+}
+
+function slugify(name: string): string {
+  return (
+    name
+      .normalize('NFKD')
+      .replace(/[̀-ͯ]/g, '') // strip accents
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '')
+      .slice(0, 60) || 'presentacion'
+  )
+}
+
+/**
+ * Export a presentation as a self-contained, runnable Vite project zip. The
+ * deck folder depends on the shared engine via relative imports
+ * (`../../../engine`), so the export mirrors that layout under `src/` and adds
+ * the configs/entry needed to `npm install && npm run dev`. Returns the saved
+ * path, or null if the user cancelled.
+ */
+export async function exportPresentation(presId: string): Promise<string | null> {
+  if (!presId.startsWith(USER_PREFIX)) throw new Error('invalid presentation')
+  const presFolder = join(presentationsDir(), presId)
+  let name = presId
+  try {
+    name = JSON.parse(readFileSync(join(presFolder, 'presentation.json'), 'utf8')).name || presId
+  } catch {
+    /* fall back to the id */
+  }
+  const slug = slugify(name)
+
+  const res = await dialog.showSaveDialog({
+    title: 'Exportar presentación',
+    defaultPath: `${slug}.zip`,
+    filters: [{ name: 'ZIP', extensions: ['zip'] }],
+  })
+  if (res.canceled || !res.filePath) return null
+  const dest = res.filePath
+
+  const staging = join(tmpdir(), `toolbox-export-${presId}-${Date.now().toString(36)}`)
+  const root = join(staging, slug)
+  const src = join(root, 'src')
+  mkdirSync(join(src, 'presentations'), { recursive: true })
+
+  // Copy the shared engine and the deck, preserving the relative-import layout.
+  await cp(join(presenterDir(), 'src/engine'), join(src, 'engine'), { recursive: true })
+  await cp(presFolder, join(src, 'presentations', presId), {
+    recursive: true,
+    // Drop internal/heavy bits that aren't part of the shareable code project.
+    filter: (s) => !s.includes(`${presId}/attachments`) && !s.endsWith('.sourcepath'),
+  })
+
+  // Entry that mounts just this deck (navigable: arrow keys advance slides).
+  await writeFile(
+    join(src, 'main.ts'),
+    `import { createApp } from 'vue'
+import './engine/engine.css'
+import { AudienceDeck } from './engine'
+import presentation from './presentations/${presId}'
+
+createApp(AudienceDeck, { presentation, navigable: true }).mount('#app')
+`,
+    'utf8',
+  )
+  await writeFile(
+    join(root, 'index.html'),
+    `<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>${name}</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>
+`,
+    'utf8',
+  )
+  await writeFile(
+    join(root, 'package.json'),
+    JSON.stringify(
+      {
+        name: slug,
+        private: true,
+        version: '1.0.0',
+        type: 'module',
+        scripts: { dev: 'vite', build: 'vue-tsc -b && vite build', preview: 'vite preview' },
+        dependencies: { gsap: '^3.15.0', vue: '^3.5.34' },
+        devDependencies: {
+          '@vitejs/plugin-vue': '^5.2.1',
+          typescript: '~5.9.3',
+          'vue-tsc': '^2.1.10',
+          vite: '^5.4.11',
+        },
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  )
+  await writeFile(
+    join(root, 'vite.config.ts'),
+    `import { defineConfig } from 'vite'
+import vue from '@vitejs/plugin-vue'
+
+export default defineConfig({ plugins: [vue()] })
+`,
+    'utf8',
+  )
+  await writeFile(
+    join(root, 'tsconfig.json'),
+    JSON.stringify(
+      {
+        compilerOptions: {
+          target: 'ESNext',
+          module: 'ESNext',
+          moduleResolution: 'Bundler',
+          strict: true,
+          jsx: 'preserve',
+          resolveJsonModule: true,
+          esModuleInterop: true,
+          skipLibCheck: true,
+          noEmit: true,
+          lib: ['ESNext', 'DOM', 'DOM.Iterable'],
+        },
+        include: ['src'],
+      },
+      null,
+      2,
+    ),
+    'utf8',
+  )
+  await writeFile(
+    join(root, 'README.md'),
+    `# ${name}
+
+Presentación de código (Vue 3 + GSAP) exportada desde Albert's Toolbox.
+Es un proyecto Vite normal: ábrelo en cualquier editor y edítalo.
+
+## Arrancar
+
+\`\`\`bash
+npm install
+npm run dev
+\`\`\`
+
+Abre la URL que imprime Vite. Flechas ← / → cambian de slide; F = pantalla completa.
+
+## Estructura
+
+- \`src/presentations/${presId}/\` — esta presentación (slides, componentes, tema).
+- \`src/engine/\` — motor del deck (transiciones, navegación, chrome).
+- \`src/main.ts\` — punto de entrada que monta el deck.
+`,
+    'utf8',
+  )
+
+  // Zip the staging root (so the archive has a single top-level folder).
+  await rm(dest, { force: true }) // zip appends to an existing archive — start clean
+  await new Promise<void>((resolveZip, rejectZip) => {
+    const zip = spawn('zip', ['-r', '-q', '-X', dest, slug], { cwd: staging })
+    zip.on('error', rejectZip)
+    zip.on('exit', (code) =>
+      code === 0 ? resolveZip() : rejectZip(new Error(`zip salió con código ${code}`)),
+    )
+  }).finally(() => void rm(staging, { recursive: true, force: true }))
+
+  return dest
+}
+
+const IMPORT_SKIP = /(^|\/)(node_modules|\.git|dist|attachments|__MACOSX)(\/|$)/
+
+/**
+ * Older exported decks painted their letterbox with a GLOBAL rule in theme.css
+ * (`body`/`#app`/`:root[data-deck]`). That mechanism is gone (it leaked between
+ * decks), so such decks now import with no background. Migrate them: lift the
+ * background value into the deck's scoped theme.vars (--deck-bg) and strip the
+ * global rule. No-op for new-format decks (those already have --deck-bg).
+ */
+function migrateLegacyTheme(deckDir: string): void {
+  const cssPath = join(deckDir, 'theme.css')
+  const idxPath = join(deckDir, 'index.ts')
+  if (!existsSync(cssPath) || !existsSync(idxPath)) return
+  const indexSrc = readFileSync(idxPath, 'utf8')
+  if (/--deck-bg/.test(indexSrc) || !/vars\s*:\s*\{/.test(indexSrc)) return
+
+  let bg: string | null = null
+  const css = readFileSync(cssPath, 'utf8').replace(
+    /[^{}]*(?:\bbody\b|#app|\[data-deck\])[^{}]*\{[^}]*\}/g,
+    (block) => {
+      const m = block.match(/background\s*:\s*([^;]+);/)
+      if (!m) return block // not a canvas-paint rule — leave it
+      if (!bg) bg = m[1].replace(/!important/g, '').replace(/\s+/g, ' ').trim()
+      return '' // drop the global paint
+    },
+  )
+  if (!bg) return
+  writeFileSync(
+    idxPath,
+    indexSrc.replace(/vars\s*:\s*\{/, (m) => `${m}\n    '--deck-bg': '${bg}',`),
+    'utf8',
+  )
+  writeFileSync(cssPath, css.replace(/\n{3,}/g, '\n\n'), 'utf8')
+}
+
+/** Find the shallowest file named `target` under `dir` (BFS). Returns its
+ *  containing directory, or null. Skips heavy/irrelevant folders. */
+function findDeckRoot(dir: string, target = 'presentation.json'): string | null {
+  const queue: string[] = [dir]
+  const SKIP = new Set(['node_modules', '.git', 'dist', 'attachments', '__MACOSX'])
+  while (queue.length) {
+    const d = queue.shift() as string
+    let entries: import('node:fs').Dirent[]
+    try {
+      entries = readdirSync(d, { withFileTypes: true })
+    } catch {
+      continue
+    }
+    if (entries.some((e) => e.isFile() && e.name === target)) return d
+    for (const e of entries) if (e.isDirectory() && !SKIP.has(e.name)) queue.push(join(d, e.name))
+  }
+  return null
+}
+
+/** If `dir` holds exactly one (non-junk) subfolder and no files, return it —
+ *  unwraps the common "everything inside a single top folder" zip shape. */
+function unwrapSingle(dir: string): string {
+  try {
+    const entries = readdirSync(dir, { withFileTypes: true }).filter((e) => e.name !== '__MACOSX')
+    if (entries.length === 1 && entries[0].isDirectory()) return join(dir, entries[0].name)
+  } catch {
+    /* ignore */
+  }
+  return dir
+}
+
+/** Where imported-but-not-yet-converted source material is kept (read in place
+ *  by Claude via --add-dir, like an attached folder). Outside the project tree
+ *  so Vite doesn't watch/rebuild on it. */
+function importsDir(): string {
+  return join(app.getPath('userData'), 'imports')
+}
+
+const IMPORT_ANALYSIS_PROMPT = `He importado un .zip cuyo contenido NO tiene el formato exacto de una presentación de Presenter, así que esta presentación está vacía (plantilla) y el material importado está en la carpeta adjunta (--add-dir): léela EN SITIO con Read/Glob/Grep.
+
+Tu tarea ahora (modo análisis, sin editar todavía):
+1. Analiza el material y di QUÉ es (un deck de otro framework, un export de PowerPoint/Keynote/Google Slides, HTML/web, imágenes, markdown, código, etc.).
+2. Determina si es CONVERTIBLE a una presentación de Presenter (Vue 3 + GSAP sobre este engine) y con qué fidelidad (alta/media/baja). Sé honesto: si no es convertible, dilo claramente y explica por qué y qué haría falta.
+3. Si es convertible, PROPÓN un plan de slides concreto para reconstruirla aquí: para cada slide, qué muestra y qué bloque de la librería usar (o si hace falta uno nuevo), más el tema/estilo (paleta, tipografía) que detectes en el material.
+
+Cuando apruebe el plan con "Implementar", lo construyes. Inténtalo siempre que haya algo aprovechable.`
+
+/**
+ * Import a presentation from a zip.
+ *
+ * - "Perfect" zip (contains a real Presenter deck: presentation.json + index.ts):
+ *   copied straight into a new presentation, ready to edit. mode = 'ready'.
+ * - Anything else (no deck, partial, or some other format): scaffold a blank
+ *   deck, stash the unzipped material as a read-in-place source folder, and
+ *   return an analysis prompt so the AI editor inspects it, says whether it's
+ *   importable, and attempts a conversion. mode = 'ai'.
+ *
+ * Returns the new id, name and mode (+ prompt for the AI path), or null if
+ * cancelled.
+ */
+export async function importPresentation(): Promise<
+  { id: string; name: string; mode: 'ready' | 'ai'; prompt?: string } | null
+> {
+  const res = await dialog.showOpenDialog({
+    title: 'Importar presentación (.zip)',
+    properties: ['openFile'],
+    filters: [{ name: 'ZIP', extensions: ['zip'] }],
+  })
+  if (res.canceled || !res.filePaths[0]) return null
+  const zipPath = res.filePaths[0]
+  const fallbackName = basename(zipPath, '.zip') || 'Presentación importada'
+
+  const tmp = join(tmpdir(), `toolbox-import-${Date.now().toString(36)}`)
+  mkdirSync(tmp, { recursive: true })
+  try {
+    await new Promise<void>((resolveU, rejectU) => {
+      const unzip = spawn('unzip', ['-q', '-o', zipPath, '-d', tmp])
+      unzip.on('error', rejectU)
+      unzip.on('exit', (code) =>
+        code === 0 ? resolveU() : rejectU(new Error(`unzip salió con código ${code}`)),
+      )
+    })
+
+    const deckRoot = findDeckRoot(tmp)
+    const isPerfect = !!deckRoot && existsSync(join(deckRoot, 'index.ts'))
+
+    if (isPerfect && deckRoot) {
+      // Clean Presenter deck → copy straight in.
+      const id = USER_PREFIX + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+      const dest = join(presentationsDir(), id)
+      await cp(deckRoot, dest, {
+        recursive: true,
+        filter: (s) => !IMPORT_SKIP.test(s) && !s.endsWith('.sourcepath'),
+      })
+      let name = fallbackName
+      try {
+        const meta = JSON.parse(readFileSync(join(dest, 'presentation.json'), 'utf8'))
+        name = meta.name || fallbackName
+        writeFileSync(
+          join(dest, 'presentation.json'),
+          JSON.stringify({ ...meta, id, name }, null, 2),
+          'utf8',
+        )
+      } catch {
+        writeFileSync(join(dest, 'presentation.json'), JSON.stringify({ id, name }, null, 2), 'utf8')
+      }
+      migrateLegacyTheme(dest) // recover background from pre-refactor exports
+      return { id, name, mode: 'ready' }
+    }
+
+    // Imperfect → scaffold a blank deck and hand the material to the AI editor.
+    // Prefer a name from a partial presentation.json if one exists.
+    let name = fallbackName
+    if (deckRoot) {
+      try {
+        name = JSON.parse(readFileSync(join(deckRoot, 'presentation.json'), 'utf8')).name || name
+      } catch {
+        /* keep fallback */
+      }
+    }
+    const { id } = await createPresentation(name)
+    const material = unwrapSingle(tmp)
+    const importDir = join(importsDir(), id)
+    mkdirSync(importsDir(), { recursive: true })
+    await cp(material, importDir, {
+      recursive: true,
+      filter: (s) => !IMPORT_SKIP.test(s),
+    })
+    await setSourcePath(id, importDir)
+    return { id, name, mode: 'ai', prompt: IMPORT_ANALYSIS_PROMPT }
+  } finally {
+    await rm(tmp, { recursive: true, force: true })
+  }
+}
+
 /** The registered live source folder for a presentation, or null. */
 function sourcePathOf(presId: string): string | null {
   try {
@@ -68,12 +427,73 @@ function sourcePathOf(presId: string): string | null {
   }
 }
 
+// ---- cover thumbnails ----
+
+function thumbsDir(): string {
+  return join(app.getPath('userData'), 'thumbs')
+}
+function thumbFile(presId: string): string {
+  return join(thumbsDir(), `${presId}.jpg`)
+}
+
+// Serialize renders — many offscreen windows at once is heavy.
+let thumbChain: Promise<unknown> = Promise.resolve()
+function queueThumb<T>(fn: () => Promise<T>): Promise<T> {
+  const run = thumbChain.then(fn, fn)
+  thumbChain = run.catch(() => {})
+  return run
+}
+
+/** Render the deck's first slide to a JPG (offscreen) and cache it. Returns the
+ *  cache file path. Heavy — runs one at a time via queueThumb. */
+function renderThumbnail(presId: string): Promise<string> {
+  return queueThumb(async () => {
+    const base = await getPreviewUrl()
+    const win = new BrowserWindow({
+      show: false,
+      width: 1280,
+      height: 720,
+      paintWhenInitiallyHidden: true,
+      webPreferences: { offscreen: false, backgroundThrottling: false },
+    })
+    try {
+      await win.loadURL(`${base}?pres=${presId}`)
+      // Let fonts load and the intro animation settle before capturing.
+      await new Promise((r) => setTimeout(r, 1300))
+      const img = await win.webContents.capturePage()
+      const jpg = img.toJPEG(86)
+      mkdirSync(thumbsDir(), { recursive: true })
+      writeFileSync(thumbFile(presId), jpg)
+      return thumbFile(presId)
+    } finally {
+      win.destroy()
+    }
+  })
+}
+
+/** Cover image for a presentation as a JPEG data URL. Renders on first request
+ *  (or when `force`), otherwise returns the cached render. */
+export async function getThumbnail(presId: string, force = false): Promise<string | null> {
+  const file = thumbFile(presId)
+  try {
+    if (force || !existsSync(file)) await renderThumbnail(presId)
+    const buf = readFileSync(file)
+    return `data:image/jpeg;base64,${buf.toString('base64')}`
+  } catch {
+    return null
+  }
+}
+
 // ---- AI editor (Claude Code) ----
 
-type ChatEvent = { kind: 'assistant' | 'tool' | 'done' | 'error'; text: string }
+type ChatEvent = {
+  kind: 'assistant' | 'tool' | 'done' | 'error'
+  text: string
+  // On 'done': the Claude Code session id, so the caller can --resume this exact
+  // conversation later (sessions are per-conversation, owned by the renderer).
+  sessionId?: string
+}
 
-// Resume the Claude Code session per presentation so the chat keeps context.
-const sessionByPres = new Map<string, string>()
 // Running chat process per presentation, so it can be stopped.
 const chatProc = new Map<string, ChildProcess>()
 
@@ -93,6 +513,7 @@ export function sendChat(
   message: string,
   emit: (e: ChatEvent) => void,
   allowEdits = true,
+  resumeSessionId?: string | null,
 ): Promise<void> {
   return new Promise((resolveP) => {
     const folder = join(presentationsDir(), presId)
@@ -100,7 +521,9 @@ export function sendChat(
     // A writable, self-growing library where Claude saves new reusable blocks.
     const userBlocks = join(presenterDir(), 'blocks-user')
     mkdirSync(userBlocks, { recursive: true })
-    const prev = sessionByPres.get(presId)
+    // Resume the conversation's own session if it has one (per-conversation
+    // context); absent → first turn → prepend the preamble below.
+    const prev = resumeSessionId || undefined
     const source = sourcePathOf(presId)
 
     const libsLine = `Hay dos librerías de bloques reutilizables: ${blocks} (oficiales) y ${userBlocks} (guardados de antes). LEE ${blocks}/INDEX.md (contrato del engine: SlideEntry, controls, useSliderState, defineExpose) y revisa ambas carpetas.`
@@ -169,8 +592,13 @@ export function sendChat(
             }
           }
         } else if (msg.type === 'result') {
-          if (typeof msg.session_id === 'string') sessionByPres.set(presId, msg.session_id)
-          emit({ kind: msg.is_error ? 'error' : 'done', text: String(msg.result ?? '') })
+          emit({
+            kind: msg.is_error ? 'error' : 'done',
+            text: String(msg.result ?? ''),
+            sessionId: typeof msg.session_id === 'string' ? msg.session_id : undefined,
+          })
+          // The deck likely changed — refresh its cover thumbnail in the background.
+          if (!msg.is_error) void renderThumbnail(presId).catch(() => {})
         }
         // everything else (system/hook/rate_limit/init) is noise — ignored
       }

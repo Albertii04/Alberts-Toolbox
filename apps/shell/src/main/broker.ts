@@ -12,6 +12,10 @@ import {
 import { toolStorage } from './storage.js'
 import {
   setSourcePath,
+  saveAttachment,
+  exportPresentation,
+  importPresentation,
+  getThumbnail,
   createPresentation,
   deletePresentation,
   getPreviewUrl,
@@ -164,17 +168,21 @@ export function installBroker(): void {
     authorize(e.sender.id, 'authoring')
     return deletePresentation(id)
   })
-  ipcMain.handle(IPC.authoringChat, (e, presId: string, message: string, allowEdits?: boolean) => {
-    authorize(e.sender.id, 'authoring')
-    return sendChat(
-      presId,
-      message,
-      (ev) => {
-        if (!e.sender.isDestroyed()) e.sender.send(AUTHORING_CHAT_EVENT, { presId, ...ev })
-      },
-      allowEdits ?? true,
-    )
-  })
+  ipcMain.handle(
+    IPC.authoringChat,
+    (e, presId: string, message: string, allowEdits?: boolean, resumeSessionId?: string | null) => {
+      authorize(e.sender.id, 'authoring')
+      return sendChat(
+        presId,
+        message,
+        (ev) => {
+          if (!e.sender.isDestroyed()) e.sender.send(AUTHORING_CHAT_EVENT, { presId, ...ev })
+        },
+        allowEdits ?? true,
+        resumeSessionId,
+      )
+    },
+  )
   ipcMain.handle(IPC.authoringStop, (e, presId: string) => {
     authorize(e.sender.id, 'authoring')
     stopChat(presId)
@@ -186,5 +194,24 @@ export function installBroker(): void {
   ipcMain.handle(IPC.authoringSetSource, (e, presId: string, srcPath: string) => {
     authorize(e.sender.id, 'authoring')
     return setSourcePath(presId, srcPath)
+  })
+  ipcMain.handle(
+    IPC.authoringAttach,
+    (e, presId: string, name: string, dataBase64: string) => {
+      authorize(e.sender.id, 'authoring')
+      return saveAttachment(presId, name, dataBase64)
+    },
+  )
+  ipcMain.handle(IPC.authoringExport, (e, presId: string) => {
+    authorize(e.sender.id, 'authoring')
+    return exportPresentation(presId)
+  })
+  ipcMain.handle(IPC.authoringImport, (e) => {
+    authorize(e.sender.id, 'authoring')
+    return importPresentation()
+  })
+  ipcMain.handle(IPC.authoringThumbnail, (e, presId: string, force?: boolean) => {
+    authorize(e.sender.id, 'authoring')
+    return getThumbnail(presId, force)
   })
 }

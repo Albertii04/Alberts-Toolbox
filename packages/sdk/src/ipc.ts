@@ -24,6 +24,10 @@ export const IPC = {
   authoringStop: 'toolbox:authoring.stop',
   authoringPickFolder: 'toolbox:authoring.pickFolder',
   authoringSetSource: 'toolbox:authoring.setSource',
+  authoringAttach: 'toolbox:authoring.attach',
+  authoringExport: 'toolbox:authoring.export',
+  authoringImport: 'toolbox:authoring.import',
+  authoringThumbnail: 'toolbox:authoring.thumbnail',
 } as const;
 
 /** Event channel: main → tool, streaming AI editor chat progress. */

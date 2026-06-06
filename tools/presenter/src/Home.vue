@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
-import { getPresList, removePres, type PresEntry } from './documents/store'
+import { addPres, getPresList, removePres, setPendingPrompt, type PresEntry } from './documents/store'
 
 const recents = ref<PresEntry[]>([])
 const loading = ref(true)
@@ -12,16 +12,40 @@ const authoring = (
   window as unknown as {
     toolbox?: {
       authoring?: {
+        previewUrl(): Promise<string>
+        thumbnail(presId: string, force?: boolean): Promise<string | null>
         createPresentation(name: string): Promise<{ id: string }>
         deletePresentation(id: string): Promise<void>
+        importPresentation(): Promise<{
+          id: string
+          name: string
+          mode: 'ready' | 'ai'
+          prompt?: string
+        } | null>
       }
     }
   }
 ).toolbox?.authoring
 
+// Cover image (first slide rendered to JPG) per presentation id → data URL.
+const thumbs = ref<Record<string, string>>({})
+
+async function loadThumb(id: string): Promise<void> {
+  if (!authoring) return
+  try {
+    const dataUrl = await authoring.thumbnail(id)
+    if (dataUrl) thumbs.value = { ...thumbs.value, [id]: dataUrl }
+  } catch {
+    /* leave the fallback initial */
+  }
+}
+
 onMounted(async () => {
   recents.value = await getPresList()
   loading.value = false
+  // Render covers lazily (one at a time, serialized in the backend).
+  for (const r of recents.value) void loadThumb(r.id)
+  void loadThumb('concep-deck')
 })
 
 function fmtDate(iso: string): string {
@@ -34,6 +58,24 @@ function fmtDate(iso: string): string {
 
 function nueva(): void {
   location.search = '?new'
+}
+async function importar(): Promise<void> {
+  if (!authoring || busy.value) return
+  busy.value = true
+  try {
+    const r = await authoring.importPresentation()
+    if (r) {
+      await addPres(r.id, r.name)
+      // 'ai' import: seed the analysis prompt so the editor inspects the
+      // material on open and proposes a conversion (plan mode).
+      if (r.mode === 'ai' && r.prompt) await setPendingPrompt(r.id, r.prompt)
+      location.search = `?edit=${r.id}`
+      return
+    }
+  } catch (e) {
+    alert('No se pudo importar: ' + (e as Error).message)
+  }
+  busy.value = false
 }
 function openPres(id: string): void {
   location.search = `?preview=${id}`
@@ -80,7 +122,9 @@ async function confirmDelete(): Promise<void> {
         <button class="action primary" :disabled="busy" @click="nueva">
           <span class="plus">+</span> {{ busy ? 'Creando…' : 'Nueva presentación' }}
         </button>
-        <button class="action" disabled title="Próximamente">Importar .zip</button>
+        <button class="action" :disabled="busy" title="Importar una presentación .zip" @click="importar">
+          Importar .zip
+        </button>
       </div>
 
       <section class="block">
@@ -88,12 +132,29 @@ async function confirmDelete(): Promise<void> {
         <div v-if="!loading && recents.length" class="grid">
           <div v-for="r in recents" :key="r.id" class="card" @click="openEdit(r.id)">
             <div class="card-ctl">
-              <button title="Vista en vivo" @click.stop="openPres(r.id)">⚡</button>
-              <button title="Eliminar" @click.stop="askDelete(r)">✕</button>
+              <button title="Vista en vivo" @click.stop="openPres(r.id)">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" />
+                  <path d="M8 21h8M12 17v4" />
+                </svg>
+              </button>
+              <button title="Eliminar" @click.stop="askDelete(r)">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M3 6h18" />
+                  <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                  <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6" />
+                  <path d="M10 11v6M14 11v6" />
+                </svg>
+              </button>
             </div>
-            <div class="thumb"><span>{{ r.name.slice(0, 1).toUpperCase() }}</span></div>
-            <div class="card-name">{{ r.name }}</div>
-            <div class="card-meta">{{ fmtDate(r.updatedAt) }}</div>
+            <div class="thumb">
+              <img v-if="thumbs[r.id]" :src="thumbs[r.id]" class="thumb-img" alt="" />
+              <span v-else class="thumb-ph">{{ r.name.slice(0, 1).toUpperCase() }}</span>
+            </div>
+            <div class="card-body">
+              <div class="card-name">{{ r.name }}</div>
+              <div class="card-meta">{{ fmtDate(r.updatedAt) }}</div>
+            </div>
           </div>
         </div>
         <div v-else-if="!loading" class="empty">
@@ -106,11 +167,21 @@ async function confirmDelete(): Promise<void> {
         <div class="grid">
           <div class="card" @click="openExample">
             <div class="card-ctl">
-              <button title="Vista en vivo (HMR)" @click.stop="openPres('concep-deck')">⚡</button>
+              <button title="Vista en vivo (HMR)" @click.stop="openPres('concep-deck')">
+                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="2" y="3" width="20" height="14" rx="2" />
+                  <path d="M8 21h8M12 17v4" />
+                </svg>
+              </button>
             </div>
-            <div class="thumb example"><span>C</span></div>
-            <div class="card-name">De CAD a render con IA</div>
-            <div class="card-meta">Concep · Primlux</div>
+            <div class="thumb example">
+              <img v-if="thumbs['concep-deck']" :src="thumbs['concep-deck']" class="thumb-img" alt="" />
+              <span v-else class="thumb-ph">C</span>
+            </div>
+            <div class="card-body">
+              <div class="card-name">De CAD a render con IA</div>
+              <div class="card-meta">Concep · Primlux</div>
+            </div>
           </div>
         </div>
       </section>
@@ -226,22 +297,24 @@ async function confirmDelete(): Promise<void> {
 .card {
   position: relative;
   border: 1px solid var(--rule);
-  border-radius: 3px;
-  padding: 0.9rem;
+  border-radius: 8px;
+  overflow: hidden;
   cursor: pointer;
-  transition: border-color 0.15s, transform 0.15s, background 0.15s;
+  transition: border-color 0.15s, transform 0.15s, box-shadow 0.15s, background 0.15s;
   background: rgba(255, 255, 255, 0.012);
 }
 .card:hover {
-  border-color: rgba(148, 168, 202, 0.4);
+  border-color: rgba(148, 168, 202, 0.45);
   transform: translateY(-2px);
+  box-shadow: 0 12px 28px -14px rgba(0, 0, 0, 0.6);
 }
 .card-ctl {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.45rem;
+  right: 0.45rem;
+  z-index: 2;
   display: flex;
-  gap: 0.15rem;
+  gap: 0.2rem;
   opacity: 0;
   transition: opacity 0.15s;
 }
@@ -249,31 +322,47 @@ async function confirmDelete(): Promise<void> {
   opacity: 1;
 }
 .card-ctl button {
-  width: 1.3rem;
-  height: 1.3rem;
+  width: 1.5rem;
+  height: 1.5rem;
   display: grid;
   place-items: center;
-  border-radius: 2px;
-  font-size: 0.7rem;
-  color: var(--fg-muted);
+  border-radius: 5px;
+  font-size: 0.72rem;
+  color: #fff;
+  background: rgba(10, 14, 22, 0.6);
+  backdrop-filter: blur(4px);
 }
 .card-ctl button:hover {
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--fg-primary);
+  background: rgba(10, 14, 22, 0.85);
 }
 .thumb {
-  aspect-ratio: 16 / 10;
-  border-radius: 2px;
+  position: relative;
+  aspect-ratio: 16 / 9;
+  overflow: hidden;
   display: grid;
   place-items: center;
-  margin-bottom: 0.7rem;
   background: linear-gradient(135deg, rgba(67, 87, 128, 0.4), rgba(40, 54, 80, 0.6));
+}
+.thumb-img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+  display: block;
+}
+.thumb-ph {
   color: var(--brand-200);
-  font-size: 1.4rem;
+  font-size: 2rem;
   font-weight: 300;
 }
 .thumb.example {
   background: linear-gradient(135deg, rgba(85, 111, 158, 0.5), rgba(48, 62, 95, 0.7));
+}
+.card-body {
+  padding: 0.6rem 0.75rem 0.7rem;
+  border-top: 1px solid var(--rule);
 }
 .card-name {
   font-size: 0.85rem;

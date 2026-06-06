@@ -59,13 +59,23 @@ img { display: block; max-width: 100%; }
   position: fixed; inset: 0;
   display: grid; place-items: center;
   overflow: hidden;
+  /* Letterbox canvas. A deck themes it per-instance via theme.vars (--deck-bg),
+     applied inline on this element — so it NEVER leaks to other decks/editor. */
+  background: var(--deck-bg, var(--bg-canvas));
 }
-.stage {
+.deck-stage {
   position: relative;
-  width: min(100vw, calc(100vh * 16 / 9));
-  height: min(100vh, calc(100vw * 9 / 16));
+  /* width/height come from the deck's aspect selector (inline style). */
   overflow: hidden;
+  /* Clearly mark where the slide ends: a crisp edge + a big spread shadow that
+     dims the letterbox around it so the slide boundary never gets confusing. */
+  outline: 1px solid var(--rule-strong);
+  box-shadow:
+    0 0 0 1px rgba(0, 0, 0, 0.5),
+    0 0 0 9999px rgba(4, 6, 11, 0.55),
+    0 24px 70px -24px rgba(0, 0, 0, 0.7);
 }
+
 .slide-host {
   position: absolute; inset: 0;
   padding: var(--pad-y) var(--pad-x) calc(var(--pad-y) + 1.75rem);

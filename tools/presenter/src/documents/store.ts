@@ -71,6 +71,45 @@ export async function takePendingPrompt(id: string): Promise<string | null> {
   return text
 }
 
+// ---- AI chat conversations (per presentation) ----
+
+export interface ChatMsg {
+  role: 'user' | 'assistant' | 'tool' | 'error'
+  text: string
+}
+export interface Conversation {
+  id: string
+  title: string
+  createdAt: string
+  updatedAt: string
+  /** Claude Code session id, for --resume so the conversation keeps context. */
+  sessionId: string | null
+  phase: 'plan' | 'build'
+  messages: ChatMsg[]
+}
+
+const CHATS_PREFIX = 'chats:'
+const ACTIVE_PREFIX = 'activeChat:'
+
+export function newConversationId(): string {
+  return 'c-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
+}
+
+export async function getChats(presId: string): Promise<Conversation[]> {
+  return (await kv().get<Conversation[]>(CHATS_PREFIX + presId)) ?? []
+}
+export async function saveChats(presId: string, list: Conversation[]): Promise<void> {
+  // Strip Vue reactive proxies → a plain, structured-clonable value. Passing a
+  // proxy over Electron IPC throws "could not be cloned" and the save is lost.
+  await kv().set(CHATS_PREFIX + presId, JSON.parse(JSON.stringify(list)))
+}
+export async function getActiveChatId(presId: string): Promise<string | null> {
+  return await kv().get<string>(ACTIVE_PREFIX + presId)
+}
+export async function setActiveChatId(presId: string, id: string): Promise<void> {
+  await kv().set(ACTIVE_PREFIX + presId, id)
+}
+
 export async function loadDoc(id: string): Promise<PresentationDoc | null> {
   return await kv().get<PresentationDoc>(DOC_PREFIX + id)
 }

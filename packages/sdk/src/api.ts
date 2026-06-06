@@ -89,10 +89,36 @@ export interface ToolboxApi {
     /** Register a reference folder Claude reads live (no copy); passed to its
      *  --add-dir on every turn. Pass '' to clear it. */
     setSourcePath(presId: string, srcPath: string): Promise<void>;
+    /** Save an attached file/image into the presentation's attachments/ folder
+     *  so the AI editor can Read it. `dataBase64` is the raw file bytes,
+     *  base64-encoded. Returns the absolute path of the saved file. */
+    saveAttachment(presId: string, name: string, dataBase64: string): Promise<string>;
+    /** Export the presentation as a self-contained, runnable Vite project zip
+     *  (opens a native save dialog). Returns the saved path, or null if
+     *  cancelled. */
+    exportPresentation(presId: string): Promise<string | null>;
+    /** Cover image (first slide rendered to JPEG) as a data URL, or null.
+     *  Renders on first call (or when `force`), else returns the cached image. */
+    thumbnail(presId: string, force?: boolean): Promise<string | null>;
+    /** Import a presentation from a zip (opens a native open dialog).
+     *  mode 'ready' = a clean deck copied in; mode 'ai' = unrecognised material
+     *  scaffolded into a blank deck with `prompt` for the AI editor to analyse
+     *  and attempt a conversion. Returns null if cancelled. */
+    importPresentation(): Promise<{
+      id: string;
+      name: string;
+      mode: 'ready' | 'ai';
+      prompt?: string;
+    } | null>;
     /** Send a chat message to the AI editor (Claude Code) for a presentation;
      *  it edits the folder's code. Resolves when the turn finishes. Stream
      *  progress via onChat. */
-    sendChat(presId: string, message: string, allowEdits?: boolean): Promise<void>;
+    sendChat(
+      presId: string,
+      message: string,
+      allowEdits?: boolean,
+      resumeSessionId?: string | null,
+    ): Promise<void>;
     /** Stop the running AI editor turn for a presentation. */
     stopChat(presId: string): Promise<void>;
     /** Subscribe to AI editor chat events. Returns an unsubscribe fn. */
@@ -105,6 +131,8 @@ export interface AuthoringChatEvent {
   presId: string;
   kind: AuthoringChatKind;
   text: string;
+  /** On 'done': the Claude Code session id to --resume this conversation. */
+  sessionId?: string;
 }
 
 declare global {

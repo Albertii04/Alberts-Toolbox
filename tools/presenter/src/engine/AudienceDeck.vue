@@ -9,6 +9,32 @@ const slides = computed(() => props.presentation.slides)
 const wordmark = computed(() => props.presentation.theme?.wordmark ?? null)
 const themeVars = computed(() => props.presentation.theme?.vars ?? {})
 
+// Slide aspect ratio — picked from the top bar, remembered across reloads.
+const ASPECTS = { '16:9': [16, 9], '4:3': [4, 3] } as const
+type AspectKey = keyof typeof ASPECTS
+const aspect = ref<AspectKey>(((): AspectKey => {
+  try {
+    return localStorage.getItem('deck-aspect') === '4:3' ? '4:3' : '16:9'
+  } catch {
+    return '16:9'
+  }
+})())
+function setAspect(a: AspectKey): void {
+  aspect.value = a
+  try {
+    localStorage.setItem('deck-aspect', a)
+  } catch {
+    /* storage may be unavailable */
+  }
+}
+const stageStyle = computed(() => {
+  const [w, h] = ASPECTS[aspect.value]
+  return {
+    width: `min(100vw, calc(100vh * ${w} / ${h}))`,
+    height: `min(100vh, calc(100vw * ${h} / ${w}))`,
+  }
+})
+
 const { idx } = useDeckSync(0)
 const displayIdx = ref(idx.value)
 const current = computed(() => slides.value[displayIdx.value]?.component)
@@ -114,6 +140,8 @@ function onMessage(e: MessageEvent) {
   if (e.data?.type === 'deck-nav') {
     if (e.data.dir === 'prev') prev()
     else next()
+  } else if (e.data?.type === 'deck-aspect') {
+    if (e.data.aspect === '4:3' || e.data.aspect === '16:9') setAspect(e.data.aspect)
   }
 }
 function postState() {
@@ -167,7 +195,7 @@ if (!isNaN(hash) && hash >= 1 && hash <= slides.value.length) idx.value = hash -
       <div class="bar" :style="{ width: ((displayIdx + 1) / total * 100) + '%' }"></div>
     </div>
 
-    <div class="stage">
+    <div class="deck-stage" :style="stageStyle">
       <div class="slide-host" ref="slideHostEl" :key="displayIdx">
         <component :is="current" ref="slideRef" />
       </div>
