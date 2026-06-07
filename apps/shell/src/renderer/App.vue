@@ -127,7 +127,19 @@ async function refreshStore(): Promise<void> {
 }
 
 function manifestOf(a: StoreApp): ToolManifest {
-  return { id: a.id, name: a.name, version: a.version, kind: 'native', downloads: a.downloads }
+  // JSON-clone to a plain object: Vue reactive proxies (esp. nested `downloads`)
+  // do not survive Electron's structured-clone over IPC — they arrive stripped,
+  // so the installer would see no download source. Include installers too.
+  return JSON.parse(
+    JSON.stringify({
+      id: a.id,
+      name: a.name,
+      version: a.version,
+      kind: 'native',
+      downloads: a.downloads,
+      installers: a.installers,
+    }),
+  ) as ToolManifest
 }
 
 async function install(a: StoreApp): Promise<void> {
