@@ -1,5 +1,9 @@
 appId: com.albertmarimon.toolbox
 productName: Alberts Toolbox
+# Binaries are attached to the GitHub Release by the workflow (softprops action),
+# not by electron-builder — disable its publishing so it doesn't try to resolve
+# a repo from .git/config (which fails in CI) or embed an auto-update config.
+publish: null
 directories:
   output: release
   buildResources: build
