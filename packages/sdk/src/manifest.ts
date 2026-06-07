@@ -26,9 +26,52 @@ export type PackageManager = (typeof PACKAGE_MANAGERS)[number];
 /**
  * Per-manager package id for a `native` app — the id passed to the manager,
  * e.g. { brew: 'gimp', winget: 'GIMP.GIMP', flatpak: 'org.gimp.GIMP' }.
- * At least one entry is required for a `native` app.
  */
 export type Installers = Partial<Record<PackageManager, string>>;
+
+/**
+ * Target platforms a `native` app can declare a direct download for.
+ * Keyed `<process.platform>-<process.arch>`.
+ */
+export const PLATFORM_ARCHES = [
+  'darwin-arm64',
+  'darwin-x64',
+  'win32-x64',
+  'win32-arm64',
+  'linux-x64',
+  'linux-arm64',
+] as const;
+export type PlatformArch = (typeof PLATFORM_ARCHES)[number];
+
+/** A direct, public download for one platform — any URL, not just GitHub. */
+export interface DownloadSource {
+  /** https URL of the installable asset (.dmg/.zip/.exe/.msi/.AppImage…). */
+  url: string;
+  /** Optional hex sha256 of the asset; verified after download when present. */
+  sha256?: string;
+}
+
+/**
+ * Per-platform direct downloads for a `native` app. The installer picks the
+ * entry matching the user's `<platform>-<arch>`.
+ */
+export type Downloads = Partial<Record<PlatformArch, DownloadSource>>;
+
+/** A `native` app is installable if it declares package managers OR downloads. */
+export function hasInstallSource(manifest: ToolManifest): boolean {
+  return (
+    Object.keys(manifest.installers ?? {}).length > 0 ||
+    Object.keys(manifest.downloads ?? {}).length > 0
+  );
+}
+
+/** The direct download for a given `<platform>-<arch>`, if the app declares one. */
+export function downloadFor(
+  manifest: ToolManifest,
+  platformArch: string,
+): DownloadSource | undefined {
+  return manifest.downloads?.[platformArch as PlatformArch];
+}
 
 /** Quality/maintenance/security signals, refreshed out of band. All optional. */
 export interface AppMetrics {
@@ -87,8 +130,10 @@ export interface ToolManifest {
   replaces?: string[];
   /** `web` only: native capabilities, enforced by the broker. */
   capabilities?: CapabilityRequest[];
-  /** `native` only: per-manager package ids. At least one required for `native`. */
+  /** `native` only: per-manager package ids (brew/winget/scoop/flatpak). */
   installers?: Installers;
+  /** `native` only: per-platform direct download URLs (any public host). */
+  downloads?: Downloads;
   /** Quality/maintenance/security signals (refreshed out of band). */
   metrics?: AppMetrics;
 }
@@ -149,26 +194,55 @@ export function validateManifest(input: unknown): string[] {
     if (typeof m.entry !== 'string' || !m.entry) errors.push('entry is required for a web app');
     if (m.installers !== undefined)
       errors.push('installers is only valid for a native app (kind: "native")');
+    if (m.downloads !== undefined)
+      errors.push('downloads is only valid for a native app (kind: "native")');
   } else {
-    // native
+    // native — installed via a package manager and/or a direct download.
     if (m.entry !== undefined) errors.push('a native app must not declare an entry');
     if (m.capabilities !== undefined)
       errors.push('a native app cannot declare capabilities (it does not run in-shell)');
-    if (
-      typeof m.installers !== 'object' ||
-      m.installers === null ||
-      Array.isArray(m.installers) ||
-      Object.keys(m.installers as object).length === 0
-    ) {
-      errors.push('a native app requires a non-empty "installers" map');
-    } else {
-      for (const [pm, ref] of Object.entries(m.installers as Record<string, unknown>)) {
-        if (!(PACKAGE_MANAGERS as readonly string[]).includes(pm))
-          errors.push(`unknown package manager in installers: "${pm}"`);
-        if (typeof ref !== 'string' || !ref)
-          errors.push(`installers.${pm} must be a non-empty package id`);
+
+    const isMap = (v: unknown): v is Record<string, unknown> =>
+      typeof v === 'object' && v !== null && !Array.isArray(v);
+
+    let sources = 0;
+
+    if (m.installers !== undefined) {
+      if (!isMap(m.installers)) {
+        errors.push('installers must be an object');
+      } else {
+        sources += Object.keys(m.installers).length;
+        for (const [pm, ref] of Object.entries(m.installers)) {
+          if (!(PACKAGE_MANAGERS as readonly string[]).includes(pm))
+            errors.push(`unknown package manager in installers: "${pm}"`);
+          if (typeof ref !== 'string' || !ref)
+            errors.push(`installers.${pm} must be a non-empty package id`);
+        }
       }
     }
+
+    if (m.downloads !== undefined) {
+      if (!isMap(m.downloads)) {
+        errors.push('downloads must be an object');
+      } else {
+        sources += Object.keys(m.downloads).length;
+        for (const [pa, src] of Object.entries(m.downloads)) {
+          if (!(PLATFORM_ARCHES as readonly string[]).includes(pa))
+            errors.push(`unknown platform in downloads: "${pa}" (use e.g. "darwin-arm64")`);
+          if (!isMap(src)) {
+            errors.push(`downloads.${pa} must be an object with a "url"`);
+            continue;
+          }
+          if (typeof src.url !== 'string' || !/^https:\/\//.test(src.url))
+            errors.push(`downloads.${pa}.url must be an https URL`);
+          if (src.sha256 !== undefined && (typeof src.sha256 !== 'string' || !/^[a-f0-9]{64}$/i.test(src.sha256)))
+            errors.push(`downloads.${pa}.sha256 must be a 64-char hex string`);
+        }
+      }
+    }
+
+    if (sources === 0)
+      errors.push('a native app requires at least one install source ("installers" or "downloads")');
   }
 
   if (m.replaces !== undefined) {

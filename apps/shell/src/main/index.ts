@@ -4,8 +4,16 @@ import windowStateKeeper from 'electron-window-state'
 import { installBroker } from './broker.js'
 import { stopAuthoring } from './authoring.js'
 import { ToolManager } from './tools.js'
+import {
+  currentPlatformArch,
+  installNative,
+  listInstalled,
+  uninstallNative,
+} from './installer.js'
+import type { ToolManifest } from '@toolbox/sdk'
 
 const manager = new ToolManager()
+let mainWindow: BrowserWindow | null = null
 
 function shellPreloadPath(): string {
   return join(app.getAppPath(), 'out/preload/shell.js')
@@ -40,6 +48,7 @@ async function createWindow(): Promise<void> {
   })
 
   state.manage(win)
+  mainWindow = win
   manager.attach(win)
   win.once('ready-to-show', () => win.show())
 
@@ -72,6 +81,14 @@ function installShellIpc(): void {
   ipcMain.handle('shell:showHome', () => manager.showHome())
   ipcMain.handle('shell:reloadActiveTool', () => manager.reloadActive())
   ipcMain.handle('shell:getTabs', () => manager.tabs())
+
+  // ---- native app installer ----
+  ipcMain.handle('shell:installer:platform', () => currentPlatformArch())
+  ipcMain.handle('shell:installer:list', () => listInstalled())
+  ipcMain.handle('shell:installer:install', (_e, manifest: ToolManifest) =>
+    installNative(manifest, (p) => mainWindow?.webContents.send('shell:installerProgress', p)),
+  )
+  ipcMain.handle('shell:installer:uninstall', (_e, id: string) => uninstallNative(id))
 }
 
 app.on('second-instance', () => {

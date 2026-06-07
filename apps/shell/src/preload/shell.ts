@@ -24,6 +24,15 @@ const api: ShellApi = {
     ipcRenderer.on('shell:toolStatus', listener)
     return () => ipcRenderer.removeListener('shell:toolStatus', listener)
   },
+  installerPlatform: () => ipcRenderer.invoke('shell:installer:platform'),
+  installApp: (manifest) => ipcRenderer.invoke('shell:installer:install', manifest),
+  listInstalled: () => ipcRenderer.invoke('shell:installer:list'),
+  uninstallApp: (id) => ipcRenderer.invoke('shell:installer:uninstall', id),
+  onInstallProgress: (cb) => {
+    const listener = (_e: unknown, payload: Parameters<typeof cb>[0]): void => cb(payload)
+    ipcRenderer.on('shell:installerProgress', listener)
+    return () => ipcRenderer.removeListener('shell:installerProgress', listener)
+  },
 }
 
 contextBridge.exposeInMainWorld('shellApi', api)
