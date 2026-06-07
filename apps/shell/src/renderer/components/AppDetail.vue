@@ -36,6 +36,10 @@ const emit = defineEmits<{
 const palette = computed(() => paletteFor(props.app.id))
 const isWeb = computed(() => props.app.kind === 'web')
 const hasDownload = computed(() => !!props.app.downloads?.[props.platform as PlatformArch])
+const hasInstallers = computed(() => Object.keys(props.app.installers ?? {}).length > 0)
+// Installable if a direct download matches this platform OR a package manager
+// is declared (the main process checks at install time whether it's present).
+const installable = computed(() => hasDownload.value || hasInstallers.value)
 const updatable = computed(
   () => !!props.installed && props.installed.version !== props.app.version,
 )
@@ -60,7 +64,7 @@ const progressLabel = computed(() => {
   if (!p) return ''
   if (p.phase === 'downloading') return `Downloading… ${p.pct ?? 0}%`
   if (p.phase === 'verifying') return 'Verifying…'
-  if (p.phase === 'installing') return 'Installing…'
+  if (p.phase === 'installing') return p.message || 'Installing…'
   if (p.phase === 'resolving') return 'Preparing…'
   if (p.phase === 'error') return p.message || 'Install failed'
   return ''
@@ -137,12 +141,12 @@ const progressLabel = computed(() => {
           </button>
           <button
             v-else-if="!installed"
-            :disabled="busy || !hasDownload"
+            :disabled="busy || !installable"
             class="inline-flex items-center gap-2 rounded-xl bg-blue-600 px-5 py-2.5 text-[13px] font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             @click="emit('install')"
           >
             <Download class="size-4" />
-            {{ hasDownload ? 'Install' : 'Not available for ' + platform }}
+            {{ installable ? 'Install' : 'Not available for ' + platform }}
           </button>
           <span
             v-else
@@ -183,9 +187,11 @@ const progressLabel = computed(() => {
         </div>
         <div v-if="busy" class="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
           <div
+            v-if="progress.phase === 'downloading'"
             class="h-full rounded-full bg-blue-600 transition-all"
-            :style="{ width: (progress.phase === 'downloading' ? (progress.pct ?? 0) : 100) + '%' }"
+            :style="{ width: (progress.pct ?? 0) + '%' }"
           />
+          <div v-else class="indet h-full w-2/5 rounded-full bg-blue-600" />
         </div>
       </div>
 
@@ -209,3 +215,17 @@ const progressLabel = computed(() => {
     </div>
   </div>
 </template>
+
+<style scoped>
+.indet {
+  animation: indet 1.1s ease-in-out infinite;
+}
+@keyframes indet {
+  0% {
+    transform: translateX(-100%);
+  }
+  100% {
+    transform: translateX(260%);
+  }
+}
+</style>

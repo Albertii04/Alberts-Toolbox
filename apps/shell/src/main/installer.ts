@@ -1,20 +1,20 @@
 /**
- * Native app installer — wedge v1, "direct download" backend.
+ * Native app installer. Two backends behind one entry point:
  *
- * A `native` app declares per-platform direct download URLs (any public host).
- * Given a manifest, this:
- *   1. picks the download matching the user's `<platform>-<arch>`,
- *   2. downloads it to a private temp dir with progress,
- *   3. verifies sha256 when the manifest declares one,
- *   4. installs by file format (macOS .dmg/.zip → copy the .app to
- *      /Applications; Linux .AppImage → drop into userData + chmod),
- *   5. records it so "My apps" can list / uninstall.
+ *  - **Package manager** (preferred when available): if the app declares an
+ *    `installers` id for a manager present on this OS (brew / winget / scoop /
+ *    flatpak), install/upgrade/uninstall through it. Trusted, signed, and the
+ *    manager owns updates + removal.
+ *  - **Direct download** (fallback): pick the per-platform download URL, fetch
+ *    to a private temp dir (progress + optional sha256), install by file format
+ *    (macOS .dmg/.zip → copy the .app to /Applications; Linux .AppImage →
+ *    userData + chmod). Windows .exe/.msi not yet.
  *
- * Security posture: https-only, optional sha256 pin, private temp dir via
- * mkdtemp, and every external command runs through spawn with an argv array
- * (never a shell string), so a malicious URL/filename can't inject a command.
- * We never execute a fetched binary on macOS/Linux — we only copy the app
- * bundle the archive contains. Package-manager and Windows backends come next.
+ * Security posture: https-only downloads, optional sha256 pin, private temp dir
+ * via mkdtemp, and every external command runs through spawn with an argv array
+ * (never a shell string), so a malicious URL/filename/id can't inject a command.
+ * On macOS/Linux we never execute a fetched binary — we only copy the bundle the
+ * archive contains; package managers run their own signed installers.
  */
 import { app, net } from 'electron'
 import { spawn } from 'node:child_process'
@@ -23,10 +23,18 @@ import { createReadStream, createWriteStream } from 'node:fs'
 import { cp, chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { downloadFor, type ToolManifest } from '@toolbox/sdk'
+import { downloadFor, type PackageManager, type ToolManifest } from '@toolbox/sdk'
 import type { InstallProgress, InstalledApp } from '../shared/types.js'
 
 type AssetFormat = 'dmg' | 'zip' | 'appimage' | 'exe' | 'msi' | 'unknown'
+type PkgAction = 'install' | 'upgrade' | 'uninstall'
+
+/** Package managers to try, in order, per platform. */
+const PLATFORM_MANAGERS: Record<string, PackageManager[]> = {
+  darwin: ['brew'],
+  win32: ['winget', 'scoop'],
+  linux: ['flatpak'],
+}
 
 /** `<platform>-<arch>`, e.g. "darwin-arm64". Matches manifest download keys. */
 export function currentPlatformArch(): string {
@@ -115,6 +123,100 @@ function run(cmd: string, args: string[]): Promise<void> {
   })
 }
 
+/** Run a command and stream its stdout+stderr lines (for package managers). */
+function runStream(cmd: string, args: string[], onLine: (line: string) => void): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const p = spawn(cmd, args, { stdio: ['ignore', 'pipe', 'pipe'] })
+    let tail = ''
+    const feed = (buf: Buffer): void => {
+      const s = buf.toString()
+      tail = (tail + s).slice(-2000)
+      for (const line of s.split(/\r?\n/)) {
+        const t = line.trim()
+        if (t) onLine(t)
+      }
+    }
+    p.stdout?.on('data', feed)
+    p.stderr?.on('data', feed)
+    p.on('error', reject)
+    p.on('close', (code) =>
+      code === 0 ? resolve() : reject(new Error(`${cmd} exited ${code}: ${tail.trim().slice(-300)}`)),
+    )
+  })
+}
+
+/** True if a package manager is on PATH (probed via `<mgr> --version`). */
+function hasManager(name: PackageManager): Promise<boolean> {
+  return new Promise((resolve) => {
+    const p = spawn(name, ['--version'], { stdio: 'ignore' })
+    p.on('error', () => resolve(false)) // ENOENT = not installed
+    p.on('close', () => resolve(true))
+  })
+}
+
+/** Argv for a package-manager action. id comes from the (validated) manifest. */
+function mgrArgs(action: PkgAction, mgr: PackageManager, id: string): string[] {
+  switch (mgr) {
+    case 'brew':
+      // modern Homebrew installs casks too, so a bare id works for GUI apps
+      return action === 'install' ? ['install', id] : [action, id]
+    case 'winget': {
+      const common = ['--id', id, '-e', '--silent']
+      if (action === 'uninstall') return ['uninstall', ...common]
+      return [
+        action,
+        ...common,
+        '--accept-package-agreements',
+        '--accept-source-agreements',
+      ]
+    }
+    case 'scoop':
+      return action === 'upgrade' ? ['update', id] : [action, id]
+    case 'flatpak':
+      if (action === 'uninstall') return ['uninstall', '-y', id]
+      if (action === 'upgrade') return ['update', '-y', id]
+      return ['install', '-y', 'flathub', id]
+  }
+}
+
+/** The first declared package manager available on this OS, or null. */
+async function pickManager(
+  manifest: ToolManifest,
+): Promise<{ name: PackageManager; id: string } | null> {
+  for (const name of PLATFORM_MANAGERS[process.platform] ?? []) {
+    const id = manifest.installers?.[name]
+    if (id && (await hasManager(name))) return { name, id }
+  }
+  return null
+}
+
+async function installViaManager(
+  manifest: ToolManifest,
+  mgr: { name: PackageManager; id: string },
+  pa: string,
+  action: Exclude<PkgAction, 'uninstall'>,
+  emit: (p: Omit<InstallProgress, 'id'>) => void,
+): Promise<InstalledApp> {
+  emit({ phase: 'installing', message: `${mgr.name} ${action} ${mgr.id}…` })
+  await runStream(mgr.name, mgrArgs(action, mgr.name, mgr.id), (line) =>
+    emit({ phase: 'installing', message: line }),
+  )
+  const record: InstalledApp = {
+    id: manifest.id,
+    name: manifest.name,
+    version: manifest.version,
+    platformArch: pa,
+    format: `pkg:${mgr.name}`,
+    location: mgr.id,
+    installedAt: new Date().toISOString(),
+  }
+  const list = (await listInstalled()).filter((a) => a.id !== manifest.id)
+  list.unshift(record)
+  await writeInstalled(list)
+  emit({ phase: 'done' })
+  return record
+}
+
 /** Find the single `.app` bundle inside a directory (mounted dmg / unzipped). */
 async function findApp(dir: string): Promise<string | null> {
   const entries = await readdir(dir, { withFileTypes: true })
@@ -173,8 +275,26 @@ export async function installNative(
   emit({ phase: 'resolving' })
 
   const pa = currentPlatformArch()
+
+  // Prefer a package manager when one this app declares is present on the OS.
+  const mgr = await pickManager(manifest)
+  if (mgr) {
+    try {
+      const already = (await listInstalled()).some((a) => a.id === id)
+      return await installViaManager(manifest, mgr, pa, already ? 'upgrade' : 'install', emit)
+    } catch (e) {
+      emit({ phase: 'error', message: (e as Error).message })
+      throw e
+    }
+  }
+
+  // Otherwise fall back to a direct download for this platform.
   const src = downloadFor(manifest, pa)
-  if (!src) throw new Error(`no download declared for ${pa}`)
+  if (!src) {
+    const msg = `no package manager and no download for ${pa}`
+    emit({ phase: 'error', message: msg })
+    throw new Error(msg)
+  }
   const format = inferFormat(src.url)
 
   const tmp = await mkdtemp(join(tmpdir(), 'tbx-install-'))
@@ -227,7 +347,11 @@ export async function uninstallNative(id: string): Promise<void> {
   const list = await listInstalled()
   const record = list.find((a) => a.id === id)
   if (!record) return
-  if (record.format === 'appimage') {
+  if (record.format.startsWith('pkg:')) {
+    const mgr = record.format.slice(4) as PackageManager
+    // location holds the manager package id; uninstall through the manager.
+    await runStream(mgr, mgrArgs('uninstall', mgr, record.location), () => {}).catch(() => {})
+  } else if (record.format === 'appimage') {
     await rm(join(app.getPath('userData'), 'apps', id), { recursive: true, force: true })
   } else if (record.location.startsWith('/Applications/')) {
     await rm(record.location, { recursive: true, force: true })
