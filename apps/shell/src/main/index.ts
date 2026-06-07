@@ -10,6 +10,7 @@ import {
   listInstalled,
   uninstallNative,
 } from './installer.js'
+import { getCatalog } from './catalog.js'
 import type { ToolManifest } from '@toolbox/sdk'
 
 const manager = new ToolManager()
@@ -82,7 +83,8 @@ function installShellIpc(): void {
   ipcMain.handle('shell:reloadActiveTool', () => manager.reloadActive())
   ipcMain.handle('shell:getTabs', () => manager.tabs())
 
-  // ---- native app installer ----
+  // ---- catalog + native app installer ----
+  ipcMain.handle('shell:catalog', () => getCatalog())
   ipcMain.handle('shell:installer:platform', () => currentPlatformArch())
   ipcMain.handle('shell:installer:list', () => listInstalled())
   ipcMain.handle('shell:installer:install', (_e, manifest: ToolManifest) =>

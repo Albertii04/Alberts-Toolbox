@@ -128,6 +128,7 @@ async function main() {
       description: app.description,
       author: app.author,
       icon: app.icon,
+      category: app.category,
       replaces: app.replaces,
       version: app.version,
       installers: app.installers,

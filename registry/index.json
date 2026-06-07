@@ -9,14 +9,19 @@
       "version": "1.0.0",
       "description": "AI presentation builder — chat edits the real code of each deck, with live preview, present mode, notes and timer.",
       "author": "Albert Marimón",
-      "replaces": ["PowerPoint", "Keynote", "Gamma"],
+      "replaces": [
+        "PowerPoint",
+        "Keynote",
+        "Gamma"
+      ],
       "capabilities": [],
       "icon": "https://raw.githubusercontent.com/Albertii04/Alberts-Toolbox/main/tools/presenter/icon.svg",
       "download": null,
       "sha256": null,
       "metrics": {
         "repo": "https://github.com/Albertii04/Alberts-Toolbox"
-      }
+      },
+      "category": "Productivity"
     },
     {
       "id": "org.gimp",
@@ -25,7 +30,9 @@
       "version": "2.10.38",
       "description": "Full-featured raster image editor — layers, masks, filters, scripting.",
       "author": "The GIMP Team",
-      "replaces": ["Photoshop"],
+      "replaces": [
+        "Photoshop"
+      ],
       "installers": {
         "brew": "gimp",
         "winget": "GIMP.GIMP",
@@ -34,7 +41,8 @@
       "icon": "https://gitlab.gnome.org/GNOME/gimp/-/raw/master/desktop/org.gimp.GIMP.svg",
       "metrics": {
         "repo": "https://gitlab.gnome.org/GNOME/gimp"
-      }
+      },
+      "category": "Creativity"
     },
     {
       "id": "org.localsend",
@@ -42,7 +50,10 @@
       "name": "LocalSend",
       "description": "Share files and messages to nearby devices over the local network — no internet, no accounts.",
       "author": "LocalSend",
-      "replaces": ["AirDrop", "Snapdrop"],
+      "replaces": [
+        "AirDrop",
+        "Snapdrop"
+      ],
       "source": {
         "github": "localsend/localsend",
         "assets": {
@@ -51,7 +62,8 @@
           "win32-x64": "localsend.*\\.(exe|msi)$",
           "linux-x64": "localsend.*\\.AppImage$"
         }
-      }
+      },
+      "category": "Utilities"
     },
     {
       "id": "com.jgraph.drawio",
@@ -59,7 +71,10 @@
       "name": "draw.io",
       "description": "Diagramming app — flowcharts, UML, network and architecture diagrams, fully offline.",
       "author": "JGraph",
-      "replaces": ["Visio", "Lucidchart"],
+      "replaces": [
+        "Visio",
+        "Lucidchart"
+      ],
       "source": {
         "github": "jgraph/drawio-desktop",
         "assets": {
@@ -68,7 +83,8 @@
           "win32-x64": "draw\\.io-.*-windows-installer\\.exe$",
           "linux-x64": "drawio-x86_64-.*\\.AppImage$"
         }
-      }
+      },
+      "category": "Creativity"
     },
     {
       "id": "com.logseq.logseq",
@@ -76,7 +92,10 @@
       "name": "Logseq",
       "description": "Local-first outliner and knowledge base over plain markdown with backlinks and graph view.",
       "author": "Logseq",
-      "replaces": ["Notion", "Roam Research"],
+      "replaces": [
+        "Notion",
+        "Roam Research"
+      ],
       "source": {
         "github": "logseq/logseq",
         "assets": {
@@ -85,7 +104,8 @@
           "win32-x64": "logseq-win-x64-.*\\.exe$",
           "linux-x64": "logseq-linux-x64-.*\\.AppImage$"
         }
-      }
+      },
+      "category": "Productivity"
     }
   ]
 }

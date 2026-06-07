@@ -18,6 +18,8 @@ export interface ResolvedApp {
   description?: string;
   author?: string;
   icon?: string;
+  /** Storefront category, e.g. "Creativity", "Productivity", "Developer". */
+  category?: string;
   /** Paid products this app is an open alternative to. */
   replaces?: string[];
   /** Resolved version (release tag for github sources, manifest version otherwise). */

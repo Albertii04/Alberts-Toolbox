@@ -1,4 +1,4 @@
-import type { CapabilityRequest, ToolManifest } from '@toolbox/sdk'
+import type { CapabilityRequest, ResolvedApp, ToolManifest } from '@toolbox/sdk'
 
 /** What the shell renderer needs to render a tool in the launcher/marketplace. */
 export interface ToolSummary {
@@ -75,6 +75,9 @@ export interface ShellApi {
   onToolsChanged(cb: () => void): () => void
   /** Subscribe to active-tool lifecycle (loading/ready/crashed). Returns unsubscribe. */
   onToolStatus(cb: (e: ToolStatusEvent) => void): () => void
+
+  /** Fetch the resolved app catalog (native + web entries). */
+  getCatalog(): Promise<ResolvedApp[]>
 
   // ---- native installer ----
   /** This machine's `<platform>-<arch>`, e.g. "darwin-arm64". */

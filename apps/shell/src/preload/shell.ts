@@ -24,6 +24,7 @@ const api: ShellApi = {
     ipcRenderer.on('shell:toolStatus', listener)
     return () => ipcRenderer.removeListener('shell:toolStatus', listener)
   },
+  getCatalog: () => ipcRenderer.invoke('shell:catalog'),
   installerPlatform: () => ipcRenderer.invoke('shell:installer:platform'),
   installApp: (manifest) => ipcRenderer.invoke('shell:installer:install', manifest),
   listInstalled: () => ipcRenderer.invoke('shell:installer:list'),

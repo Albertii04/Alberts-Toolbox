@@ -144,6 +144,8 @@ export interface ToolManifest {
   entry?: string;
   description?: string;
   author?: string;
+  /** Storefront category, e.g. "Creativity", "Productivity", "Developer". */
+  category?: string;
   /** Paid/proprietary products this app is an open alternative to, e.g. ["Photoshop"]. */
   replaces?: string[];
   /** `web` only: native capabilities, enforced by the broker. */
@@ -296,6 +298,9 @@ export function validateManifest(input: unknown): string[] {
     if (!Array.isArray(m.replaces) || m.replaces.some((r) => typeof r !== 'string' || !r))
       errors.push('replaces must be an array of non-empty strings');
   }
+
+  if (m.category !== undefined && typeof m.category !== 'string')
+    errors.push('category must be a string');
 
   if (m.metrics !== undefined) {
     const mm = m.metrics as Record<string, unknown>;
