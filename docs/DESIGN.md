@@ -2,37 +2,56 @@
 
 ## Summary
 
-An open-source **Electron toolbox**: a desktop shell that hosts many small,
-independent **web tools**. Each tool is sandboxed in its own view and can only
-touch native capabilities it declares in a manifest, brokered by the shell. A
-**git-based marketplace** (a JSON catalog in a public GitHub repo, zero backend)
-lets anyone publish a tool by pull request and lets users browse/install.
+**Setapp for open-source software.** A desktop app to discover, compare, install
+and run high-quality open-source alternatives to paid/subscription software —
+without the usual technical complexity.
 
-The first tool is a presentation deck (`primlux.deck`), proving the model end to
-end.
+The product is a **curated catalog** with one **Install** button and one **My
+apps** view. An app is delivered in one of two ways, declared by its manifest
+`kind` — and this single abstraction is what keeps the hybrid one product, not
+two:
 
-Chosen approach: **isolated views + git registry** (over a web-route monolith or
-an npm dynamic-import model). Only isolated views satisfy *public + untrusted +
-native-capable + no backend* — a shared renderer/process cannot safely run
-untrusted third-party tools.
+- **`native`** — installed on the user's machine by orchestrating the OS package
+  manager (Homebrew / winget / Scoop / Flatpak). This covers the heavyweight
+  desktop OSS (GIMP, LibreOffice, Blender…) that *is* the point of the vision.
+  We do **not** build an installer from scratch; we wrap managers users already
+  trust. Our value = curation + the "replaces paid app X" mapping + quality/
+  security/maintenance metrics + one-click.
+- **`web`** — a small app that runs *inside* the shell in a sandboxed
+  `WebContentsView`, touching only the native capabilities it declares, brokered
+  by the shell. The AI **Presenter** is the first `web` app and dogfoods the
+  "publish your own app" pillar.
+
+Chosen approach: **isolated views + git registry + package-manager orchestration**.
+Isolated views are the only model that safely runs untrusted `web` apps (*public +
+untrusted + native-capable + no backend*); package-manager orchestration is the
+only realistic way for one team to deliver native cross-platform OSS install.
 
 ## Goals
 
-- A tool is **fast to author** — minimum viable tool is a `toolbox.json` + one
-  HTML file, no build step required.
-- Tools are **isolated** — a tool cannot read another tool's data, touch the
+- **One product, two backends.** A single catalog / Install / My-apps surface;
+  `kind` picks `web` (broker) or `native` (package manager). The user never sees
+  the seam.
+- A `web` app is **fast to author** — minimum viable app is a `toolbox.json` +
+  one HTML file, no build step required.
+- `web` apps are **isolated** — an app cannot read another app's data, touch the
   shell, or reach native APIs it didn't declare.
-- The marketplace needs **no server** — a JSON index in a GitHub repo, bundles
-  shipped as GitHub Release zips, contribution via PR.
+- `native` install is **trustworthy and transparent** — show the exact
+  package-manager command, detect the OS, stream progress, never run an opaque
+  binary we fetched ourselves.
+- The catalog needs **no server** — a JSON index in a GitHub repo, contribution
+  via PR.
 - Cross-platform packaged binaries (mac / win / linux) via automated releases.
 
 ## Non-goals (for now)
 
-- Third-party install from day one — **first-party tools first**; arbitrary
-  third-party install is gated behind the capability prompt and lands once the
-  broker is hardened.
-- Auth, accounts, server-side search, paid tools.
-- Code signing / notarization of tool bundles (SHA-pinning + PR review for now).
+- Managed hosting, in-app creation, accounts/auth, donations/dev-portal,
+  server-side search, paid listings — **later wedges**, not v1.
+- Third-party `web` app install from day one — **first-party first**; arbitrary
+  install lands once the broker is hardened and the capability-consent UI exists.
+- Shipping our own copies of native OSS binaries — we orchestrate the user's
+  package manager, we are not a mirror/CDN.
+- Code signing / notarization of `web` app bundles (SHA-pinning + PR review for now).
 
 ## Architecture
 
@@ -41,10 +60,10 @@ Monorepo, pnpm workspaces + Turborepo:
 ```
 apps/shell             Electron app (main + preload + Vue renderer)
 packages/sdk           manifest schema, capability model, window.toolbox typings, IPC channel names
-packages/tool-host     node-side tool registry (scan folders, validate manifests)
-tools/deck             the presentation, tool #1 (primlux.deck)
-templates/tool-starter copy-to-start minimal tool
-registry/index.json    local stub of the public marketplace catalog
+packages/tool-host     node-side app registry (scan folders, validate manifests)
+tools/presenter        the AI presentation builder, first `web` app
+templates/tool-starter copy-to-start minimal `web` app
+registry/index.json    catalog (web + native entries; stub of the public registry)
 ```
 
 ### Processes & isolation
@@ -85,15 +104,35 @@ against the schema, resolves the built `entry` to a `file://` URL. Builtin tools
 live in `tools/` (dev) or `resources/tools/` (packaged). Installed tools (future)
 live in `userData/tools/`.
 
-### Marketplace (git-based, no backend)
+### Catalog (git-based, no backend)
 
-- Catalog = `registry/index.json`, eventually its own public repo. Each entry:
-  id, name, version, description, author, capabilities, icon URL, download URL
-  (a GitHub Release zip of the built tool), sha256.
-- Discover: shell fetches the index, renders a grid.
-- Install (future): download zip → verify SHA → unzip into `userData/tools/<id>/`
-  → read manifest → show capability prompt → enable.
-- Publish: contributor PRs an entry + attaches a release. Merge = listed.
+- Catalog = `registry/index.json`, eventually its own public repo. Every entry is
+  an **app** with a `kind`. Shared fields: id, name, version, description, author,
+  icon URL, `replaces` (the paid product this is an alternative to), `metrics`
+  (GitHub stars, last commit, open CVEs — refreshed out of band).
+- **`web` entry** adds: `capabilities`, download URL (a GitHub Release zip of the
+  built app), sha256.
+- **`native` entry** adds: `installers` — a per-OS map of package-manager refs,
+  e.g. `{ "brew": "gimp", "winget": "GIMP.GIMP", "flatpak": "org.gimp.GIMP" }`.
+- Discover: shell fetches the index, renders one grid; filter by "replaces X".
+- Install:
+  - `web` → download zip → verify SHA → unzip into `userData/tools/<id>/` → read
+    manifest → capability-consent prompt → enable.
+  - `native` → detect OS → resolve the installer ref → run the package manager as
+    a child process, streaming progress; show the exact command first.
+- My apps: installed `web` apps + detected `native` installs; update / uninstall
+  through the same backend that installed them.
+- Publish: contributor PRs an entry. `web` apps attach a release; `native` apps
+  just reference existing package-manager ids. Merge = listed.
+
+### Native installer service
+
+Lives in main. Responsibilities: detect the platform and which managers are
+present; map an `installers` entry to a concrete command; spawn `brew` /
+`winget` / `scoop` / `flatpak` and stream stdout/stderr as progress; report
+installed/updatable state for "My apps". Security posture: only ever runs a known
+package manager with a catalog-vetted package id — never an arbitrary fetched
+binary — and surfaces the command to the user before running it.
 
 ## Build, dev, packaging
 
@@ -116,19 +155,22 @@ live in `userData/tools/`.
 
 ## Phasing
 
-**Phase 1 (done):** monorepo + Turborepo + gitflow + CI/release workflows; SDK +
-tool-host contracts; Electron shell that boots, lists tools, and loads the deck
-in an isolated view with the full broker wired; deck migrated to `tools/deck`;
-marketplace as a read-only stub; tool-starter template.
+**Done:** monorepo + Turborepo + gitflow + CI/release workflows; SDK + tool-host
+contracts; Electron shell that boots, lists apps, and loads `web` apps in
+isolated views with the full broker wired; the AI Presenter (`web` app) working
+end-to-end; catalog as a read-only stub; tool-starter template.
 
-**Phase 2:** create-tool scaffolder; per-capability install prompt UI; richer
-storage; a couple more first-party tools.
+**Wedge v1 — desktop one-click install (now):** extend the manifest/registry with
+`kind`, `replaces`, `installers`, `metrics`; native installer service
+(start with `brew`, then `winget`/`flatpak`); discovery grid with "replaces X"
+filter; Install button; "My apps" (installed / update / uninstall). Seed ~10–30
+real OSS apps mapped to the paid products they replace.
 
-**Phase 3:** live marketplace fetch from the public registry repo; third-party
-install flow (download → SHA verify → capability consent → enable); update checks.
+**Next:** live catalog fetch from the public registry repo; third-party `web`
+install (download → SHA verify → capability consent → enable); metric refresh.
 
-**Phase 4:** signing/notarization; optional auto-update; community contribution
-docs and registry repo split-out.
+**Later wedges:** developer portal (publish, donations, support/services);
+managed hosting; in-app creation; signing/notarization + auto-update.
 
 ## Risks / open questions
 
