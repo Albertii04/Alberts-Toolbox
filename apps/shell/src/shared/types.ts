@@ -1,4 +1,4 @@
-import type { CapabilityRequest } from '@toolbox/sdk'
+import type { CapabilityRequest, ToolManifest } from '@toolbox/sdk'
 
 /** What the shell renderer needs to render a tool in the launcher/marketplace. */
 export interface ToolSummary {
@@ -33,6 +33,29 @@ export interface TabsState {
   activeId: string | null
 }
 
+// ---- native app installer (direct-download backend) ----
+
+/** A native app installed on the machine, tracked for "My apps". */
+export interface InstalledApp {
+  id: string
+  name: string
+  version: string
+  platformArch: string
+  format: string
+  /** Absolute install location (the .app in /Applications, or the AppImage). */
+  location: string
+  installedAt: string
+}
+
+/** Progress of an in-flight native install, pushed during `installApp`. */
+export interface InstallProgress {
+  id: string
+  phase: 'resolving' | 'downloading' | 'verifying' | 'installing' | 'done' | 'error'
+  /** 0–100 during `downloading`. */
+  pct?: number
+  message?: string
+}
+
 /** window.shellApi — exposed to the shell renderer only (not to tools). */
 export interface ShellApi {
   listTools(): Promise<ToolSummary[]>
@@ -52,6 +75,18 @@ export interface ShellApi {
   onToolsChanged(cb: () => void): () => void
   /** Subscribe to active-tool lifecycle (loading/ready/crashed). Returns unsubscribe. */
   onToolStatus(cb: (e: ToolStatusEvent) => void): () => void
+
+  // ---- native installer ----
+  /** This machine's `<platform>-<arch>`, e.g. "darwin-arm64". */
+  installerPlatform(): Promise<string>
+  /** Install a native app from its manifest's direct download for this platform. */
+  installApp(manifest: ToolManifest): Promise<InstalledApp>
+  /** List installed native apps. */
+  listInstalled(): Promise<InstalledApp[]>
+  /** Uninstall a native app by id. */
+  uninstallApp(id: string): Promise<void>
+  /** Subscribe to install progress. Returns an unsubscribe fn. */
+  onInstallProgress(cb: (p: InstallProgress) => void): () => void
 }
 
 declare global {
