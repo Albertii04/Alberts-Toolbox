@@ -123,7 +123,31 @@ live in `userData/tools/`.
 - My apps: installed `web` apps + detected `native` installs; update / uninstall
   through the same backend that installed them.
 - Publish: contributor PRs an entry. `web` apps attach a release; `native` apps
-  just reference existing package-manager ids. Merge = listed.
+  reference package-manager ids, direct download URLs, and/or a GitHub source.
+  Merge = listed.
+
+### Catalog resolver (keeps the catalog from going stale)
+
+Most native OSS ships on GitHub, so a `native` entry can stay thin: a `source`
+of `{ github: "owner/repo", assets: { "<platform>-<arch>": "<asset-name regex>" } }`
+instead of pinned versions/URLs. A resolver (`scripts/resolve-catalog.mjs`)
+expands every such entry via the GitHub API into the concrete `downloads`,
+`version`, release `notes`, screenshot `images` and `metrics` — the
+`ResolvedApp` shape — and writes `registry/resolved.json`.
+
+- **No rate limits, no token in the app.** The resolver runs in a scheduled
+  workflow (`.github/workflows/resolve-catalog.yml`, every 6h + on catalog
+  change) using the Actions `GITHUB_TOKEN` (5000 req/h), and publishes
+  `resolved.json` to a dedicated **`catalog-data`** branch. The shell fetches
+  that static file — fast, fresh, anonymous. (A true webhook watcher needs a
+  backend; the scheduled poll is the zero-backend equivalent.)
+- **Direct downloads** (`downloads`) and **package managers** (`installers`)
+  remain for apps not on GitHub (GitLab, own infra); the resolver passes those
+  through unchanged. GitHub `source` is authoring sugar that compiles down to
+  the `downloads` the installer already understands.
+- **Updates** fall out for free: compare installed `version` vs resolved
+  `version` → "update available" → re-run install. Self-updating apps can be
+  flagged to skip.
 
 ### Native installer service
 

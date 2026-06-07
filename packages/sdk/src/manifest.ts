@@ -57,11 +57,29 @@ export interface DownloadSource {
  */
 export type Downloads = Partial<Record<PlatformArch, DownloadSource>>;
 
-/** A `native` app is installable if it declares package managers OR downloads. */
+/**
+ * An upstream source a resolver expands into a concrete version + downloads +
+ * release notes + metrics. Lets the catalog stay thin (a repo ref + asset
+ * patterns) while freshness comes from the GitHub API out of band.
+ */
+export interface GithubSource {
+  /** "owner/repo" whose latest release provides version and assets. */
+  github: string;
+  /** Per-platform regex matched against release asset NAMES to pick the download. */
+  assets: Partial<Record<PlatformArch, string>>;
+  /** Resolve from the newest prerelease too. Default false (stable only). */
+  prereleases?: boolean;
+}
+
+/** Where a `native` app's version/downloads are resolved from (github for now). */
+export type AppSource = GithubSource;
+
+/** A `native` app is installable if it declares managers, downloads, OR a source. */
 export function hasInstallSource(manifest: ToolManifest): boolean {
   return (
     Object.keys(manifest.installers ?? {}).length > 0 ||
-    Object.keys(manifest.downloads ?? {}).length > 0
+    Object.keys(manifest.downloads ?? {}).length > 0 ||
+    manifest.source !== undefined
   );
 }
 
@@ -134,6 +152,8 @@ export interface ToolManifest {
   installers?: Installers;
   /** `native` only: per-platform direct download URLs (any public host). */
   downloads?: Downloads;
+  /** `native` only: upstream source (e.g. GitHub) a resolver expands live. */
+  source?: AppSource;
   /** Quality/maintenance/security signals (refreshed out of band). */
   metrics?: AppMetrics;
 }
@@ -196,6 +216,8 @@ export function validateManifest(input: unknown): string[] {
       errors.push('installers is only valid for a native app (kind: "native")');
     if (m.downloads !== undefined)
       errors.push('downloads is only valid for a native app (kind: "native")');
+    if (m.source !== undefined)
+      errors.push('source is only valid for a native app (kind: "native")');
   } else {
     // native — installed via a package manager and/or a direct download.
     if (m.entry !== undefined) errors.push('a native app must not declare an entry');
@@ -241,8 +263,33 @@ export function validateManifest(input: unknown): string[] {
       }
     }
 
+    if (m.source !== undefined) {
+      if (!isMap(m.source)) {
+        errors.push('source must be an object');
+      } else {
+        sources += 1;
+        const s = m.source as Record<string, unknown>;
+        if (typeof s.github !== 'string' || !/^[\w.-]+\/[\w.-]+$/.test(s.github))
+          errors.push('source.github must be an "owner/repo" string');
+        if (!isMap(s.assets) || Object.keys(s.assets).length === 0) {
+          errors.push('source.assets must map at least one platform to an asset-name regex');
+        } else {
+          for (const [pa, rx] of Object.entries(s.assets)) {
+            if (!(PLATFORM_ARCHES as readonly string[]).includes(pa))
+              errors.push(`unknown platform in source.assets: "${pa}"`);
+            if (typeof rx !== 'string' || !rx)
+              errors.push(`source.assets.${pa} must be a non-empty regex string`);
+          }
+        }
+        if (s.prereleases !== undefined && typeof s.prereleases !== 'boolean')
+          errors.push('source.prereleases must be a boolean');
+      }
+    }
+
     if (sources === 0)
-      errors.push('a native app requires at least one install source ("installers" or "downloads")');
+      errors.push(
+        'a native app requires at least one install source ("installers", "downloads" or "source")',
+      );
   }
 
   if (m.replaces !== undefined) {

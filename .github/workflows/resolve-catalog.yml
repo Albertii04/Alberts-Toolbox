@@ -1,0 +1,63 @@
+name: Resolve catalog
+
+# Expands the thin authoring catalog (registry/index.json) into the runtime
+# catalog (registry/resolved.json) via the GitHub API, and publishes it to the
+# `catalog-data` branch. The shell fetches that branch's raw file — always
+# fresh, no API rate limits, no token shipped in the app. Runs on a schedule,
+# on demand, and whenever the catalog source changes on develop/main.
+
+on:
+  schedule:
+    - cron: '17 */6 * * *' # every 6 hours
+  workflow_dispatch:
+  push:
+    branches: [develop, main]
+    paths:
+      - registry/index.json
+      - scripts/resolve-catalog.mjs
+      - .github/workflows/resolve-catalog.yml
+
+permissions:
+  contents: write
+
+concurrency:
+  group: resolve-catalog
+  cancel-in-progress: true
+
+jobs:
+  resolve:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Resolve catalog
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node scripts/resolve-catalog.mjs
+
+      - name: Publish to catalog-data branch
+        run: |
+          set -e
+          cp registry/resolved.json "$RUNNER_TEMP/resolved.json"
+          rm -f registry/resolved.json
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git fetch origin catalog-data || true
+          if git show-ref --verify --quiet refs/remotes/origin/catalog-data; then
+            git switch catalog-data
+          else
+            git switch --orphan catalog-data
+          fi
+          git rm -rf . >/dev/null 2>&1 || true
+          mkdir -p registry
+          cp "$RUNNER_TEMP/resolved.json" registry/resolved.json
+          git add -f registry/resolved.json
+          if git diff --cached --quiet; then
+            echo "catalog unchanged — nothing to publish"
+          else
+            git commit -m "chore(catalog): refresh resolved.json [skip ci]"
+            git push origin catalog-data
+          fi
