@@ -1,4 +1,4 @@
-# Alberts Toolbox
+# Open App Store
 
 **Setapp for open-source software.** A desktop app that helps you *discover,
 compare, install and run* high-quality open-source alternatives to paid apps and

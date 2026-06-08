@@ -1,5 +1,5 @@
 appId: com.albertmarimon.toolbox
-productName: Alberts Toolbox
+productName: Open App Store
 # Publish to GitHub Releases so electron-builder emits the auto-update metadata
 # (latest*.yml) electron-updater reads. The release workflow runs with
 # --publish always + GH_TOKEN.
