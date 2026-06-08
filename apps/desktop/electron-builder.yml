@@ -6,7 +6,7 @@ productName: Open App Store
 publish:
   provider: github
   owner: Albertii04
-  repo: Alberts-Toolbox
+  repo: open-app-store
   releaseType: release
 directories:
   output: release
