@@ -51,6 +51,7 @@ async function createWindow(): Promise<void> {
 
   state.manage(win)
   mainWindow = win
+  win.removeMenu() // drop the default File/Edit/View menu bar on Windows/Linux (no-op on macOS)
   manager.attach(win)
   win.once('ready-to-show', () => win.show())
 
