@@ -2,7 +2,7 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { cp, rm, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
-import { basename, join, resolve, sep } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { app, BrowserWindow, dialog } from 'electron'
 import AdmZip from 'adm-zip'
 
@@ -19,12 +19,14 @@ function extractZip(zipPath: string, destDir: string): void {
   const zip = new AdmZip(zipPath)
   for (const entry of zip.getEntries()) {
     const target = resolve(root, entry.entryName)
-    if (target !== root && !target.startsWith(root + sep))
+    // Reject any entry that resolves outside the destination ("../" traversal).
+    const rel = relative(root, target)
+    if (rel.startsWith('..') || isAbsolute(rel))
       throw new Error(`unsafe zip entry: ${entry.entryName}`)
     if (entry.isDirectory) {
       mkdirSync(target, { recursive: true })
     } else {
-      mkdirSync(join(target, '..'), { recursive: true })
+      mkdirSync(dirname(target), { recursive: true })
       writeFileSync(target, entry.getData())
     }
   }
