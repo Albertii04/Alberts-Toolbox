@@ -1,6 +1,6 @@
 {
   "name": "@toolbox/shell",
-  "version": "0.3.0",
+  "version": "0.2.1",
   "description": "Electron shell that hosts sandboxed web tools with a capability broker.",
   "license": "MIT",
   "type": "module",
