@@ -242,7 +242,7 @@ export default defineConfig({ plugins: [vue()] })
     join(root, 'README.md'),
     `# ${name}
 
-Presentación de código (Vue 3 + GSAP) exportada desde Albert's Toolbox.
+Presentación de código (Vue 3 + GSAP) exportada desde Open App Store.
 Es un proyecto Vite normal: ábrelo en cualquier editor y edítalo.
 
 ## Arrancar

@@ -309,7 +309,7 @@ onMounted(() => {
             <div class="grid size-7 place-items-center rounded-lg bg-gradient-to-br from-blue-500 to-violet-600 text-white shadow-sm">
               <Boxes class="size-4" />
             </div>
-            <span class="text-[13px] font-semibold tracking-tight">Toolbox</span>
+            <span class="text-[13px] font-semibold tracking-tight">Open App Store</span>
           </div>
 
           <button class="nav" :class="{ 'nav-on': nav === 'discover' }" @click="nav = 'discover'">
