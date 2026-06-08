@@ -56,6 +56,15 @@ export interface InstallProgress {
   message?: string
 }
 
+/** Auto-update lifecycle, pushed from the main process. */
+export interface UpdateStatus {
+  phase: 'checking' | 'available' | 'none' | 'downloading' | 'ready' | 'error'
+  version?: string
+  /** 0–100 during `downloading`. */
+  pct?: number
+  message?: string
+}
+
 /** window.shellApi — exposed to the shell renderer only (not to tools). */
 export interface ShellApi {
   listTools(): Promise<ToolSummary[]>
@@ -90,6 +99,12 @@ export interface ShellApi {
   uninstallApp(id: string): Promise<void>
   /** Subscribe to install progress. Returns an unsubscribe fn. */
   onInstallProgress(cb: (p: InstallProgress) => void): () => void
+
+  // ---- app auto-update ----
+  /** Subscribe to auto-update status. Returns an unsubscribe fn. */
+  onUpdateStatus(cb: (s: UpdateStatus) => void): () => void
+  /** Quit and install a downloaded update. */
+  installUpdate(): Promise<void>
 }
 
 declare global {

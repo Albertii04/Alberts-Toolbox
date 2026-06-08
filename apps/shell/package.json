@@ -17,6 +17,7 @@
     "@toolbox/sdk": "workspace:*",
     "@toolbox/tool-host": "workspace:*",
     "adm-zip": "^0.5.17",
+    "electron-updater": "^6.8.9",
     "lucide-vue-next": "^1.0.0"
   },
   "devDependencies": {

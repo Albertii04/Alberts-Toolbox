@@ -1,9 +1,13 @@
 appId: com.albertmarimon.toolbox
 productName: Alberts Toolbox
-# Binaries are attached to the GitHub Release by the workflow (softprops action),
-# not by electron-builder — disable its publishing so it doesn't try to resolve
-# a repo from .git/config (which fails in CI) or embed an auto-update config.
-publish: null
+# Publish to GitHub Releases so electron-builder emits the auto-update metadata
+# (latest*.yml) electron-updater reads. The release workflow runs with
+# --publish always + GH_TOKEN.
+publish:
+  provider: github
+  owner: Albertii04
+  repo: Alberts-Toolbox
+  releaseType: release
 directories:
   output: release
   buildResources: build
@@ -22,6 +26,14 @@ mac:
     - dmg
     - zip
   category: public.app-category.productivity
+  # macOS only applies SIGNED + NOTARIZED auto-updates. Sign with the Developer
+  # ID (CSC_LINK/CSC_KEY_PASSWORD) and notarize (APPLE_ID/APPLE_APP_SPECIFIC_
+  # PASSWORD/APPLE_TEAM_ID) — all provided as env in the release workflow.
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  notarize: true
 win:
   target:
     - nsis
