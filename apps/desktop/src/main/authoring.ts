@@ -1,5 +1,5 @@
 import { spawn, type ChildProcess } from 'node:child_process'
-import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
+import { cpSync, existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { cp, rm, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
 import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
@@ -55,12 +55,72 @@ function templateDir(): string {
 
 const USER_PREFIX = 'u-'
 
+// ---- durable deck backup ----
+// User decks live in the (gitignored) source tree so Vite can compile them, so
+// they don't survive a repo move/clean or ship in CI builds. Mirror each to a
+// durable copy under userData and restore them into the source tree on startup.
+
+function userDecksDir(): string {
+  return join(app.getPath('userData'), 'presentations')
+}
+function safeReaddir(dir: string): string[] {
+  try {
+    return readdirSync(dir)
+  } catch {
+    return []
+  }
+}
+// Back up the deck CODE only. Skip read-in-place source material, attachments,
+// build output and VCS — that stuff can be huge and may contain symlinks (e.g.
+// a downloaded CLI) that make cpSync fail with EINVAL.
+const DECK_SKIP = /(^|\/)(node_modules|\.git|dist|attachments|source|__MACOSX)(\/|$)/
+const deckFilter = (s: string): boolean => !DECK_SKIP.test(s) && !s.endsWith('.sourcepath')
+
+/** Restore user decks from the userData backup into the source tree (dev only). */
+export function restoreUserDecks(): void {
+  if (app.isPackaged) return // packaged decks are baked into dist; source tree is read-only
+  const have = new Set(safeReaddir(presentationsDir()))
+  for (const name of safeReaddir(userDecksDir())) {
+    if (!name.startsWith(USER_PREFIX) || have.has(name)) continue
+    try {
+      cpSync(join(userDecksDir(), name), join(presentationsDir(), name), {
+        recursive: true,
+        filter: deckFilter,
+      })
+    } catch {
+      /* ignore a single bad deck */
+    }
+  }
+}
+
+/** Mirror user decks from the source tree to the durable userData backup. */
+export function backupUserDecks(): void {
+  if (app.isPackaged) return
+  try {
+    mkdirSync(userDecksDir(), { recursive: true })
+  } catch {
+    /* ignore */
+  }
+  for (const name of safeReaddir(presentationsDir())) {
+    if (!name.startsWith(USER_PREFIX)) continue
+    try {
+      cpSync(join(presentationsDir(), name), join(userDecksDir(), name), {
+        recursive: true,
+        filter: deckFilter,
+      })
+    } catch {
+      /* ignore */
+    }
+  }
+}
+
 /** Scaffold a new code presentation folder from the template. */
 export async function createPresentation(name: string): Promise<{ id: string }> {
   const id = USER_PREFIX + Date.now().toString(36) + Math.random().toString(36).slice(2, 6)
   const dest = join(presentationsDir(), id)
   await cp(templateDir(), dest, { recursive: true })
   await writeFile(join(dest, 'presentation.json'), JSON.stringify({ id, name }, null, 2), 'utf8')
+  backupUserDecks()
   return { id }
 }
 
@@ -68,6 +128,7 @@ export async function createPresentation(name: string): Promise<{ id: string }> 
 export async function deletePresentation(id: string): Promise<void> {
   if (!id.startsWith(USER_PREFIX)) throw new Error('refusing to delete a non-user presentation')
   await rm(join(presentationsDir(), id), { recursive: true, force: true })
+  await rm(join(userDecksDir(), id), { recursive: true, force: true }) // drop the backup too
 }
 
 /** Native folder picker; returns the chosen path or null. */
@@ -426,6 +487,7 @@ export async function importPresentation(): Promise<
         writeFileSync(join(dest, 'presentation.json'), JSON.stringify({ id, name }, null, 2), 'utf8')
       }
       migrateLegacyTheme(dest) // recover background from pre-refactor exports
+      backupUserDecks()
       return { id, name, mode: 'ready' }
     }
 
@@ -634,8 +696,11 @@ export function sendChat(
             text: String(msg.result ?? ''),
             sessionId: typeof msg.session_id === 'string' ? msg.session_id : undefined,
           })
-          // The deck likely changed — refresh its cover thumbnail in the background.
-          if (!msg.is_error) void renderThumbnail(presId).catch(() => {})
+          // The deck likely changed — refresh its cover thumbnail + back up.
+          if (!msg.is_error) {
+            void renderThumbnail(presId).catch(() => {})
+            backupUserDecks()
+          }
         }
         // everything else (system/hook/rate_limit/init) is noise — ignored
       }

@@ -2,7 +2,8 @@ import { BrowserWindow, app, ipcMain, nativeTheme, shell } from 'electron'
 import { join } from 'node:path'
 import windowStateKeeper from 'electron-window-state'
 import { installBroker } from './broker.js'
-import { stopAuthoring } from './authoring.js'
+import { stopAuthoring, restoreUserDecks, backupUserDecks } from './authoring.js'
+import { migrateUserData } from './migrate.js'
 import { ToolManager } from './tools.js'
 import {
   currentPlatformArch,
@@ -107,6 +108,9 @@ app.on('second-instance', () => {
 })
 
 app.whenReady().then(async () => {
+  migrateUserData() // restore tool-storage from a prior app name (rename-safe)
+  restoreUserDecks() // recover user decks from the userData backup into the source tree
+  backupUserDecks() // and mirror the current decks back out
   installBroker()
   installShellIpc()
   await manager.load()
