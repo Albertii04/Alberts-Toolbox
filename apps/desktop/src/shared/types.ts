@@ -1,4 +1,4 @@
-import type { CapabilityRequest, ResolvedApp, ToolManifest } from '@toolbox/sdk'
+import type { CapabilityRequest, ResolvedApp, ToolManifest } from '@openappstore/sdk'
 
 /** What the shell renderer needs to render a tool in the launcher/marketplace. */
 export interface ToolSummary {

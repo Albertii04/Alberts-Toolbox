@@ -12,7 +12,7 @@ import {
 } from './installer.js'
 import { getCatalog } from './catalog.js'
 import { initAutoUpdater, quitAndInstallUpdate } from './updater.js'
-import type { ToolManifest } from '@toolbox/sdk'
+import type { ToolManifest } from '@openappstore/sdk'
 
 const manager = new ToolManager()
 let mainWindow: BrowserWindow | null = null

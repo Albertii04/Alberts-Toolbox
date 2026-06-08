@@ -1,4 +1,4 @@
-import type { ResolvedApp } from '@toolbox/sdk'
+import type { ResolvedApp } from '@openappstore/sdk'
 
 /** A catalog app augmented with local runtime info for the storefront. */
 export interface StoreApp extends ResolvedApp {

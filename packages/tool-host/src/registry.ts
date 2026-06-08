@@ -1,7 +1,7 @@
 import { readdir, readFile, stat } from 'node:fs/promises';
 import { join, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { validateManifest, type ToolManifest } from '@toolbox/sdk';
+import { validateManifest, type ToolManifest } from '@openappstore/sdk';
 
 export interface LoadedTool {
   manifest: ToolManifest;

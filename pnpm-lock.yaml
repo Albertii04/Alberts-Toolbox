@@ -17,10 +17,10 @@ importers:
 
   apps/desktop:
     dependencies:
-      '@toolbox/sdk':
+      '@openappstore/sdk':
         specifier: workspace:*
         version: link:../../packages/sdk
-      '@toolbox/tool-host':
+      '@openappstore/tool-host':
         specifier: workspace:*
         version: link:../../packages/tool-host
       adm-zip:
@@ -115,7 +115,7 @@ importers:
 
   packages/tool-host:
     dependencies:
-      '@toolbox/sdk':
+      '@openappstore/sdk':
         specifier: workspace:*
         version: link:../sdk
     devDependencies:

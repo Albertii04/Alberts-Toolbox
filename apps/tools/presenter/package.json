@@ -1,5 +1,5 @@
 {
-  "name": "@toolbox/tool-presenter",
+  "name": "@openappstore/presenter",
   "private": true,
   "version": "1.0.0",
   "type": "module",

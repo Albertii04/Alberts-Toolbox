@@ -1,5 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron'
-import { AUTHORING_CHAT_EVENT, IPC, type ToolboxApi } from '@toolbox/sdk'
+import { AUTHORING_CHAT_EVENT, IPC, type ToolboxApi } from '@openappstore/sdk'
 
 /** Tool identity is injected via additionalArguments (see ToolManager.open). */
 function arg(prefix: string): string {

@@ -12,7 +12,7 @@ import {
   Loader,
   TriangleAlert,
 } from 'lucide-vue-next'
-import type { PlatformArch } from '@toolbox/sdk'
+import type { PlatformArch } from '@openappstore/sdk'
 import type { InstallProgress, InstalledApp } from '../../shared/types'
 import type { StoreApp } from '../store-types'
 import { paletteFor } from '../store-types'

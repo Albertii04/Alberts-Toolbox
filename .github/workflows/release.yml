@@ -38,7 +38,7 @@ jobs:
       # ID and notarizes; CSC_LINK is left empty on win/linux so they build
       # unsigned. Apple secrets are only consumed by the mac notarize step.
       - name: Package + publish
-        run: pnpm --filter @toolbox/shell exec electron-builder --publish always
+        run: pnpm --filter @openappstore/desktop exec electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           CSC_LINK: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_LINK || '' }}

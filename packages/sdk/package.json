@@ -1,5 +1,5 @@
 {
-  "name": "@toolbox/sdk",
+  "name": "@openappstore/sdk",
   "version": "0.1.0",
   "description": "Shared contract for Albert's Toolbox: tool manifest schema, capability model, and the window.toolbox API typings.",
   "license": "MIT",

@@ -39,7 +39,7 @@ Until third-party install ships, only first-party tools in `tools/` are loaded.
 
 ## Code conventions
 
-- TypeScript, strict. Shared contracts live in `@toolbox/sdk` — change them there.
+- TypeScript, strict. Shared contracts live in `@openappstore/sdk` — change them there.
 - Never bypass the capability broker (`apps/shell/src/main/broker.ts`).
 - Keep tools isolated: `sandbox: true`, `contextIsolation: true`,
   `nodeIntegration: false`. No exceptions.
