@@ -1,0 +1,39 @@
+{
+  "name": "@toolbox/shell",
+  "version": "0.2.1",
+  "description": "Electron shell that hosts sandboxed web tools with a capability broker.",
+  "license": "MIT",
+  "type": "module",
+  "main": "out/main/index.js",
+  "scripts": {
+    "dev": "electron-vite dev",
+    "build": "electron-vite build",
+    "start": "electron-vite preview",
+    "typecheck": "tsc --noEmit -p tsconfig.node.json && vue-tsc --noEmit -p tsconfig.web.json",
+    "lint": "tsc --noEmit -p tsconfig.node.json",
+    "package": "electron-vite build && electron-builder"
+  },
+  "dependencies": {
+    "@toolbox/sdk": "workspace:*",
+    "@toolbox/tool-host": "workspace:*",
+    "adm-zip": "^0.5.17",
+    "electron-updater": "^6.8.9",
+    "lucide-vue-next": "^1.0.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4",
+    "@types/adm-zip": "^0.5.8",
+    "@types/node": "^20.11.0",
+    "@vitejs/plugin-vue": "^5.2.1",
+    "@vue/tsconfig": "^0.9.1",
+    "electron": "^33.2.1",
+    "electron-builder": "^25.1.8",
+    "electron-vite": "^2.3.0",
+    "electron-window-state": "^5.0.3",
+    "tailwindcss": "^4",
+    "typescript": "~5.9.3",
+    "vite": "^5.4.11",
+    "vue": "^3.5.13",
+    "vue-tsc": "^2.1.10"
+  }
+}

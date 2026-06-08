@@ -1,0 +1,12 @@
+{
+  "id": "albert.presenter",
+  "kind": "web",
+  "name": "Presenter",
+  "version": "1.0.0",
+  "icon": "icon.svg",
+  "entry": "dist/index.html",
+  "description": "Motor de presentaciones con modo presentador, notas, timer y sincronización a dos pantallas.",
+  "author": "Albert Marimón",
+  "replaces": ["PowerPoint", "Keynote", "Gamma"],
+  "capabilities": ["storage", "authoring"]
+}

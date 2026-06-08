@@ -1,0 +1,46 @@
+appId: com.albertmarimon.toolbox
+productName: Open App Store
+# Publish to GitHub Releases so electron-builder emits the auto-update metadata
+# (latest*.yml) electron-updater reads. The release workflow runs with
+# --publish always + GH_TOKEN.
+publish:
+  provider: github
+  owner: Albertii04
+  repo: Alberts-Toolbox
+  releaseType: release
+directories:
+  output: release
+  buildResources: build
+files:
+  - out/**
+# Builtin tools ship as resources/tools/<id>/ (built dist + manifest + icon).
+extraResources:
+  - from: ../tools
+    to: tools
+    filter:
+      - '**/toolbox.json'
+      - '**/icon.svg'
+      - '**/dist/**'
+mac:
+  target:
+    - dmg
+    - zip
+  category: public.app-category.productivity
+  # macOS only applies SIGNED + NOTARIZED auto-updates. Sign with the Developer
+  # ID (CSC_LINK/CSC_KEY_PASSWORD) and notarize (APPLE_ID/APPLE_APP_SPECIFIC_
+  # PASSWORD/APPLE_TEAM_ID) — all provided as env in the release workflow.
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  # Signed (Developer ID) → auto-update validates the signature, so updates
+  # apply. Notarization is OFF until APPLE_ID + APPLE_APP_SPECIFIC_PASSWORD are
+  # set as secrets; flip to true then to also clear Gatekeeper on first install.
+  notarize: false
+win:
+  target:
+    - nsis
+linux:
+  target:
+    - AppImage
+  category: Utility
