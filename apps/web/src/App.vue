@@ -2,7 +2,7 @@
 import { computed, onMounted, ref } from 'vue'
 import { RESOLVED_CATALOG_URL, type ResolvedApp } from '@openappstore/sdk'
 
-const RELEASES_URL = 'https://github.com/Albertii04/Alberts-Toolbox/releases/latest'
+const RELEASES_URL = 'https://github.com/Albertii04/open-app-store/releases/latest'
 
 const apps = ref<ResolvedApp[]>([])
 const loading = ref(true)

@@ -15,11 +15,11 @@
         "Gamma"
       ],
       "capabilities": [],
-      "icon": "https://raw.githubusercontent.com/Albertii04/Alberts-Toolbox/main/tools/presenter/icon.svg",
+      "icon": "https://raw.githubusercontent.com/Albertii04/open-app-store/main/apps/tools/presenter/icon.svg",
       "download": null,
       "sha256": null,
       "metrics": {
-        "repo": "https://github.com/Albertii04/Alberts-Toolbox"
+        "repo": "https://github.com/Albertii04/open-app-store"
       },
       "category": "Productivity"
     },
