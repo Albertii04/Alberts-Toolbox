@@ -63,7 +63,8 @@
           "linux-x64": "localsend.*\\.AppImage$"
         }
       },
-      "category": "Utilities"
+      "category": "Utilities",
+      "icon": "https://github.com/localsend.png"
     },
     {
       "id": "com.jgraph.drawio",
@@ -84,7 +85,8 @@
           "linux-x64": "drawio-x86_64-.*\\.AppImage$"
         }
       },
-      "category": "Creativity"
+      "category": "Creativity",
+      "icon": "https://raw.githubusercontent.com/jgraph/drawio-desktop/master/build/icon.png"
     },
     {
       "id": "com.logseq.logseq",
@@ -105,7 +107,8 @@
           "linux-x64": "logseq-linux-x64-.*\\.AppImage$"
         }
       },
-      "category": "Productivity"
+      "category": "Productivity",
+      "icon": "https://raw.githubusercontent.com/logseq/logseq/master/resources/icon.png"
     }
   ]
 }
