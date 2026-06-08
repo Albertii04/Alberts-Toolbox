@@ -16,7 +16,7 @@ import type { AppKind, AppMetrics, Downloads, Installers } from './manifest.js';
  * preview.
  */
 export const RESOLVED_CATALOG_URL =
-  'https://raw.githubusercontent.com/Albertii04/Alberts-Toolbox/catalog-data/registry/resolved.json';
+  'https://raw.githubusercontent.com/Albertii04/open-app-store/catalog-data/registry/resolved.json';
 
 /** One app as the shell consumes it — every dynamic field already resolved. */
 export interface ResolvedApp {
