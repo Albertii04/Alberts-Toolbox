@@ -1,6 +1,6 @@
 {
   "name": "open-app-store",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "private": true,
   "description": "Open-source Electron toolbox: a shell that hosts independent web-based tools, each sandboxed, with a capability broker and a git-based marketplace.",
   "license": "MIT",
@@ -23,6 +23,9 @@
     "typescript": "~5.9.3"
   },
   "pnpm": {
-    "onlyBuiltDependencies": ["electron", "esbuild"]
+    "onlyBuiltDependencies": [
+      "electron",
+      "esbuild"
+    ]
   }
 }

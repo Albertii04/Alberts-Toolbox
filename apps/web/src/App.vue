@@ -112,7 +112,7 @@ onMounted(async () => {
     <nav class="sticky top-0 z-30 border-b border-neutral-200/70 bg-white/80 backdrop-blur-xl">
       <div class="mx-auto flex h-14 max-w-7xl items-center gap-6 px-6">
         <button class="flex items-center gap-2.5" @click="selected = null">
-          <img src="/favicon.svg" alt="" class="size-7 rounded-lg" />
+          <img src="/favicon.png" alt="" class="size-7 rounded-lg" />
           <span class="text-[15px] font-bold tracking-tight">Open App Store</span>
         </button>
         <div class="flex-1" />
