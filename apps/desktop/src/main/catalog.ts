@@ -7,10 +7,9 @@
 import { app, net } from 'electron'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import type { ResolvedApp, ResolvedCatalog } from '@openappstore/sdk'
+import { RESOLVED_CATALOG_URL, type ResolvedApp, type ResolvedCatalog } from '@openappstore/sdk'
 
-const CATALOG_URL =
-  'https://raw.githubusercontent.com/Albertii04/Alberts-Toolbox/catalog-data/registry/resolved.json'
+const CATALOG_URL = RESOLVED_CATALOG_URL
 
 function fetchJson(url: string): Promise<unknown> {
   return new Promise((resolveP, reject) => {

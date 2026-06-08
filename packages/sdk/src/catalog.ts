@@ -10,6 +10,14 @@
  */
 import type { AppKind, AppMetrics, Downloads, Installers } from './manifest.js';
 
+/**
+ * The published resolved catalog the resolver writes to the `catalog-data`
+ * branch. Single source of truth — fetched by both the desktop app and the web
+ * preview.
+ */
+export const RESOLVED_CATALOG_URL =
+  'https://raw.githubusercontent.com/Albertii04/Alberts-Toolbox/catalog-data/registry/resolved.json';
+
 /** One app as the shell consumes it — every dynamic field already resolved. */
 export interface ResolvedApp {
   id: string;
