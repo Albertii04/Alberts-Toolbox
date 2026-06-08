@@ -83,9 +83,6 @@ function openPres(id: string): void {
 function openEdit(id: string): void {
   location.search = `?edit=${id}`
 }
-function openExample(): void {
-  location.search = '?pres=concep-deck'
-}
 function askDelete(entry: PresEntry): void {
   pendingDelete.value = entry
   confirmText.value = ''
@@ -162,29 +159,6 @@ async function confirmDelete(): Promise<void> {
         </div>
       </section>
 
-      <section class="block">
-        <div class="block-label">Ejemplos</div>
-        <div class="grid">
-          <div class="card" @click="openExample">
-            <div class="card-ctl">
-              <button title="Vista en vivo (HMR)" @click.stop="openPres('concep-deck')">
-                <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <rect x="2" y="3" width="20" height="14" rx="2" />
-                  <path d="M8 21h8M12 17v4" />
-                </svg>
-              </button>
-            </div>
-            <div class="thumb example">
-              <img v-if="thumbs['concep-deck']" :src="thumbs['concep-deck']" class="thumb-img" alt="" />
-              <span v-else class="thumb-ph">C</span>
-            </div>
-            <div class="card-body">
-              <div class="card-name">De CAD a render con IA</div>
-              <div class="card-meta">Concep · Primlux</div>
-            </div>
-          </div>
-        </div>
-      </section>
     </div>
 
     <div v-if="pendingDelete" class="modal-bg" @click.self="cancelDelete">
