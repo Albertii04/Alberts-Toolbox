@@ -11,6 +11,7 @@ import {
   uninstallNative,
 } from './installer.js'
 import { getCatalog } from './catalog.js'
+import { initAutoUpdater, quitAndInstallUpdate } from './updater.js'
 import type { ToolManifest } from '@toolbox/sdk'
 
 const manager = new ToolManager()
@@ -91,6 +92,9 @@ function installShellIpc(): void {
     installNative(manifest, (p) => mainWindow?.webContents.send('shell:installerProgress', p)),
   )
   ipcMain.handle('shell:installer:uninstall', (_e, id: string) => uninstallNative(id))
+
+  // ---- app auto-update ----
+  ipcMain.handle('shell:update:install', () => quitAndInstallUpdate())
 }
 
 app.on('second-instance', () => {
@@ -106,6 +110,7 @@ app.whenReady().then(async () => {
   installShellIpc()
   await manager.load()
   await createWindow()
+  initAutoUpdater(() => mainWindow)
 
   app.on('activate', () => {
     if (BrowserWindow.getAllWindows().length === 0) void createWindow()

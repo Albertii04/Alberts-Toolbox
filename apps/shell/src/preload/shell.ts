@@ -34,6 +34,12 @@ const api: ShellApi = {
     ipcRenderer.on('shell:installerProgress', listener)
     return () => ipcRenderer.removeListener('shell:installerProgress', listener)
   },
+  onUpdateStatus: (cb) => {
+    const listener = (_e: unknown, payload: Parameters<typeof cb>[0]): void => cb(payload)
+    ipcRenderer.on('shell:updateStatus', listener)
+    return () => ipcRenderer.removeListener('shell:updateStatus', listener)
+  },
+  installUpdate: () => ipcRenderer.invoke('shell:update:install'),
 }
 
 contextBridge.exposeInMainWorld('shellApi', api)
