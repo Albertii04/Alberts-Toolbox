@@ -12,7 +12,7 @@
     "dev": "turbo run dev --filter=@toolbox/shell...",
     "dev:presenter": "turbo run dev --filter=@toolbox/tool-presenter",
     "build": "turbo run build",
-    "build:tools": "turbo run build --filter=./tools/*",
+    "build:tools": "turbo run build --filter=./apps/tools/*",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
     "shell": "pnpm --filter @toolbox/shell start",

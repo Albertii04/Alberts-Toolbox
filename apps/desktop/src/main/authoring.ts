@@ -42,7 +42,7 @@ let url: string | null = null
 let starting: Promise<string> | null = null
 
 function presenterDir(): string {
-  return resolve(app.getAppPath(), '../../tools/presenter')
+  return resolve(app.getAppPath(), '../tools/presenter')
 }
 function presentationsDir(): string {
   return join(presenterDir(), 'src/presentations')
