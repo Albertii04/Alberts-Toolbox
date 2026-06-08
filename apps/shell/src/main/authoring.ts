@@ -2,8 +2,35 @@ import { spawn, type ChildProcess } from 'node:child_process'
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, readdirSync, writeFileSync } from 'node:fs'
 import { cp, rm, writeFile } from 'node:fs/promises'
 import { homedir, tmpdir } from 'node:os'
-import { basename, join, resolve } from 'node:path'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'node:path'
 import { app, BrowserWindow, dialog } from 'electron'
+import AdmZip from 'adm-zip'
+
+/** Create `dest` (a .zip) from the single top-level folder inside `staging`. */
+function zipFolder(staging: string, dest: string): void {
+  const zip = new AdmZip()
+  zip.addLocalFolder(staging) // entries keep their `<slug>/…` paths
+  zip.writeZip(dest)
+}
+
+/** Extract a zip to `destDir`, refusing entries that escape it (zip-slip). */
+function extractZip(zipPath: string, destDir: string): void {
+  const root = resolve(destDir)
+  const zip = new AdmZip(zipPath)
+  for (const entry of zip.getEntries()) {
+    const target = resolve(root, entry.entryName)
+    // Reject any entry that resolves outside the destination ("../" traversal).
+    const rel = relative(root, target)
+    if (rel.startsWith('..') || isAbsolute(rel))
+      throw new Error(`unsafe zip entry: ${entry.entryName}`)
+    if (entry.isDirectory) {
+      mkdirSync(target, { recursive: true })
+    } else {
+      mkdirSync(dirname(target), { recursive: true })
+      writeFileSync(target, entry.getData())
+    }
+  }
+}
 
 /**
  * Privileged authoring host: runs a single Vite dev server for the Presenter so
@@ -237,14 +264,12 @@ Abre la URL que imprime Vite. Flechas ← / → cambian de slide; F = pantalla c
   )
 
   // Zip the staging root (so the archive has a single top-level folder).
-  await rm(dest, { force: true }) // zip appends to an existing archive — start clean
-  await new Promise<void>((resolveZip, rejectZip) => {
-    const zip = spawn('zip', ['-r', '-q', '-X', dest, slug], { cwd: staging })
-    zip.on('error', rejectZip)
-    zip.on('exit', (code) =>
-      code === 0 ? resolveZip() : rejectZip(new Error(`zip salió con código ${code}`)),
-    )
-  }).finally(() => void rm(staging, { recursive: true, force: true }))
+  await rm(dest, { force: true }) // start clean
+  try {
+    zipFolder(staging, dest)
+  } finally {
+    await rm(staging, { recursive: true, force: true })
+  }
 
   return dest
 }
@@ -366,13 +391,7 @@ export async function importPresentation(): Promise<
   // mkdtemp: unique dir, safe perms (avoids predictable os-temp paths/races).
   const tmp = mkdtempSync(join(tmpdir(), 'toolbox-import-'))
   try {
-    await new Promise<void>((resolveU, rejectU) => {
-      const unzip = spawn('unzip', ['-q', '-o', zipPath, '-d', tmp])
-      unzip.on('error', rejectU)
-      unzip.on('exit', (code) =>
-        code === 0 ? resolveU() : rejectU(new Error(`unzip salió con código ${code}`)),
-      )
-    })
+    extractZip(zipPath, tmp)
 
     const deckRoot = findDeckRoot(tmp)
     // "Perfect" = the deck folder also has an index.ts. List the dir instead of

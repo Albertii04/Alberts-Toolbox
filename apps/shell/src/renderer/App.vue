@@ -15,7 +15,14 @@ import {
   PackageOpen,
 } from 'lucide-vue-next'
 import type { ToolManifest } from '@toolbox/sdk'
-import type { InstallProgress, InstalledApp, TabsState, ToolStatus, ToolSummary } from '../shared/types'
+import type {
+  InstallProgress,
+  InstalledApp,
+  TabsState,
+  ToolStatus,
+  ToolSummary,
+  UpdateStatus,
+} from '../shared/types'
 import type { StoreApp } from './store-types'
 import AppCard from './components/AppCard.vue'
 import AppDetail from './components/AppDetail.vue'
@@ -34,6 +41,7 @@ const nav = ref<string>('discover') // 'discover' | 'myapps' | 'favorites' | 'ca
 const selected = ref<StoreApp | null>(null)
 const progress = ref<Record<string, InstallProgress>>({})
 const favs = ref<Set<string>>(new Set())
+const update = ref<UpdateStatus | null>(null)
 
 const FAV_KEY = 'storefront:favs'
 const fallbackIcon =
@@ -172,6 +180,9 @@ function reloadTool(): void {
 function goHome(): void {
   void window.shellApi.showHome()
 }
+function installUpdate(): void {
+  void window.shellApi.installUpdate()
+}
 
 onMounted(() => {
   loadFavs()
@@ -184,6 +195,9 @@ onMounted(() => {
   })
   window.shellApi.onToolStatus((e) => {
     if (e.id === tabs.value.activeId) activeStatus.value = e.status
+  })
+  window.shellApi.onUpdateStatus((s) => {
+    update.value = s
   })
   window.shellApi.onInstallProgress((p) => {
     progress.value = { ...progress.value, [p.id]: p }
@@ -405,6 +419,36 @@ onMounted(() => {
         @open-tool="openTool(selected!.id)"
         @toggle-fav="toggleFav(selected!)"
       />
+    </Transition>
+
+    <!-- auto-update toast -->
+    <Transition name="fade">
+      <div
+        v-if="update && ['available', 'downloading', 'ready'].includes(update.phase)"
+        class="fixed bottom-4 right-4 z-50 w-72 rounded-2xl border border-neutral-200 bg-white p-4 shadow-xl dark:border-neutral-700 dark:bg-neutral-900"
+      >
+        <template v-if="update.phase === 'ready'">
+          <p class="text-[13px] font-semibold">Actualización lista{{ update.version ? ' · v' + update.version : '' }}</p>
+          <p class="mt-0.5 text-[12px] text-neutral-500">Reinicia para instalarla.</p>
+          <button
+            class="mt-3 w-full rounded-xl bg-blue-600 px-3 py-2 text-[13px] font-semibold text-white transition hover:bg-blue-700"
+            @click="installUpdate"
+          >
+            Reiniciar e instalar
+          </button>
+        </template>
+        <template v-else>
+          <p class="text-[13px] font-semibold">
+            {{ update.phase === 'downloading' ? 'Descargando actualización…' : 'Actualización disponible' }}{{ update.version ? ' · v' + update.version : '' }}
+          </p>
+          <div class="mt-2 h-1.5 overflow-hidden rounded-full bg-neutral-100 dark:bg-neutral-800">
+            <div
+              class="h-full rounded-full bg-blue-600 transition-all"
+              :style="{ width: (update.phase === 'downloading' ? (update.pct ?? 0) : 8) + '%' }"
+            />
+          </div>
+        </template>
+      </div>
     </Transition>
   </div>
 </template>
