@@ -43,6 +43,11 @@ export async function loadTool(
   if (errors.length) throw new Error(`${manifestPath}:\n  - ${errors.join('\n  - ')}`);
 
   const manifest = parsed as ToolManifest;
+  // tool-host loads folder-based `web` apps; `native` apps live only in the
+  // catalog and are installed via a package manager, never scanned here.
+  if (manifest.kind === 'native')
+    throw new Error(`${manifest.id}: native apps are not loaded from folders`);
+  if (!manifest.entry) throw new Error(`${manifest.id}: web app is missing an entry`);
   const entryPath = resolve(root, manifest.entry);
   if (!(await exists(entryPath)))
     throw new Error(`${manifest.id}: entry not found at ${entryPath} (did the tool build?)`);

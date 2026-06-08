@@ -1,17 +1,111 @@
 {
-  "version": 1,
-  "comment": "Marketplace catalog. Each tool entry points at a downloadable, SHA-pinned bundle (a GitHub Release zip of the built tool). Contributors publish by PR-ing an entry here. The shell fetches this file to render the marketplace. download/sha256 are filled when a release exists; null until then.",
-  "tools": [
+  "version": 2,
+  "comment": "Authoring catalog (thin). Every entry has a `kind`. `web` apps ship as a SHA-pinned GitHub Release zip of the built app and run in-shell. `native` apps declare an install source: `installers` (package-manager ids: brew/winget/scoop/flatpak), `downloads` (per-platform direct URLs), and/or `source` (a GitHub repo + per-platform asset-name regex). A resolver (scripts/resolve-catalog.mjs, run on a schedule) expands `source` entries via the GitHub API into registry/resolved.json — version, download URLs, release notes, screenshots, metrics — which the shell fetches at runtime. `replaces` maps the app to the paid product(s) it is an alternative to. Contributors publish by PR-ing an entry here.",
+  "apps": [
     {
       "id": "albert.presenter",
+      "kind": "web",
       "name": "Presenter",
       "version": "1.0.0",
-      "description": "Motor de presentaciones con modo presentador, notas, timer y sincronización a dos pantallas.",
+      "description": "AI presentation builder — chat edits the real code of each deck, with live preview, present mode, notes and timer.",
       "author": "Albert Marimón",
+      "replaces": [
+        "PowerPoint",
+        "Keynote",
+        "Gamma"
+      ],
       "capabilities": [],
       "icon": "https://raw.githubusercontent.com/Albertii04/Alberts-Toolbox/main/tools/presenter/icon.svg",
       "download": null,
-      "sha256": null
+      "sha256": null,
+      "metrics": {
+        "repo": "https://github.com/Albertii04/Alberts-Toolbox"
+      },
+      "category": "Productivity"
+    },
+    {
+      "id": "org.gimp",
+      "kind": "native",
+      "name": "GIMP",
+      "version": "2.10.38",
+      "description": "Full-featured raster image editor — layers, masks, filters, scripting.",
+      "author": "The GIMP Team",
+      "replaces": [
+        "Photoshop"
+      ],
+      "installers": {
+        "brew": "gimp",
+        "winget": "GIMP.GIMP",
+        "flatpak": "org.gimp.GIMP"
+      },
+      "icon": "https://gitlab.gnome.org/GNOME/gimp/-/raw/master/desktop/org.gimp.GIMP.svg",
+      "metrics": {
+        "repo": "https://gitlab.gnome.org/GNOME/gimp"
+      },
+      "category": "Creativity"
+    },
+    {
+      "id": "org.localsend",
+      "kind": "native",
+      "name": "LocalSend",
+      "description": "Share files and messages to nearby devices over the local network — no internet, no accounts.",
+      "author": "LocalSend",
+      "replaces": [
+        "AirDrop",
+        "Snapdrop"
+      ],
+      "source": {
+        "github": "localsend/localsend",
+        "assets": {
+          "darwin-arm64": "localsend.*\\.dmg$",
+          "darwin-x64": "localsend.*\\.dmg$",
+          "win32-x64": "localsend.*\\.(exe|msi)$",
+          "linux-x64": "localsend.*\\.AppImage$"
+        }
+      },
+      "category": "Utilities"
+    },
+    {
+      "id": "com.jgraph.drawio",
+      "kind": "native",
+      "name": "draw.io",
+      "description": "Diagramming app — flowcharts, UML, network and architecture diagrams, fully offline.",
+      "author": "JGraph",
+      "replaces": [
+        "Visio",
+        "Lucidchart"
+      ],
+      "source": {
+        "github": "jgraph/drawio-desktop",
+        "assets": {
+          "darwin-arm64": "draw\\.io-arm64-.*\\.dmg$",
+          "darwin-x64": "draw\\.io-(?!arm64).*\\.dmg$",
+          "win32-x64": "draw\\.io-.*-windows-installer\\.exe$",
+          "linux-x64": "drawio-x86_64-.*\\.AppImage$"
+        }
+      },
+      "category": "Creativity"
+    },
+    {
+      "id": "com.logseq.logseq",
+      "kind": "native",
+      "name": "Logseq",
+      "description": "Local-first outliner and knowledge base over plain markdown with backlinks and graph view.",
+      "author": "Logseq",
+      "replaces": [
+        "Notion",
+        "Roam Research"
+      ],
+      "source": {
+        "github": "logseq/logseq",
+        "assets": {
+          "darwin-arm64": "logseq-darwin-arm64-.*\\.dmg$",
+          "darwin-x64": "logseq-darwin-x64-.*\\.dmg$",
+          "win32-x64": "logseq-win-x64-.*\\.exe$",
+          "linux-x64": "logseq-linux-x64-.*\\.AppImage$"
+        }
+      },
+      "category": "Productivity"
     }
   ]
 }
