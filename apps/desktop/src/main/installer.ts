@@ -23,7 +23,7 @@ import { createReadStream, createWriteStream } from 'node:fs'
 import { cp, chmod, mkdir, mkdtemp, readdir, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
-import { downloadFor, type PackageManager, type ToolManifest } from '@toolbox/sdk'
+import { downloadFor, type PackageManager, type ToolManifest } from '@openappstore/sdk'
 import type { InstallProgress, InstalledApp } from '../shared/types.js'
 
 type AssetFormat = 'dmg' | 'zip' | 'appimage' | 'exe' | 'msi' | 'unknown'

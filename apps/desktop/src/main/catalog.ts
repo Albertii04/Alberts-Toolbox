@@ -7,7 +7,7 @@
 import { app, net } from 'electron'
 import { readFile } from 'node:fs/promises'
 import { resolve } from 'node:path'
-import type { ResolvedApp, ResolvedCatalog } from '@toolbox/sdk'
+import type { ResolvedApp, ResolvedCatalog } from '@openappstore/sdk'
 
 const CATALOG_URL =
   'https://raw.githubusercontent.com/Albertii04/Alberts-Toolbox/catalog-data/registry/resolved.json'

@@ -1,5 +1,5 @@
 {
-  "name": "@toolbox/shell",
+  "name": "@openappstore/desktop",
   "version": "0.2.1",
   "description": "Electron shell that hosts sandboxed web tools with a capability broker.",
   "license": "MIT",
@@ -14,8 +14,8 @@
     "package": "electron-vite build && electron-builder"
   },
   "dependencies": {
-    "@toolbox/sdk": "workspace:*",
-    "@toolbox/tool-host": "workspace:*",
+    "@openappstore/sdk": "workspace:*",
+    "@openappstore/tool-host": "workspace:*",
     "adm-zip": "^0.5.17",
     "electron-updater": "^6.8.9",
     "lucide-vue-next": "^1.0.0"

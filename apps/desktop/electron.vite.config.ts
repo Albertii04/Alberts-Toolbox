@@ -3,11 +3,11 @@ import { defineConfig, externalizeDepsPlugin } from 'electron-vite'
 import vue from '@vitejs/plugin-vue'
 import tailwindcss from '@tailwindcss/vite'
 
-// @toolbox/* are workspace packages; adm-zip is a small CJS lib we'd otherwise
+// @openappstore/* are workspace packages; adm-zip is a small CJS lib we'd otherwise
 // have to ship in node_modules (brittle under pnpm). Bundle them all into the
 // main/preload output rather than treating them as external, so packaging stays
 // self-contained.
-const bundleWorkspace = { exclude: ['@toolbox/sdk', '@toolbox/tool-host', 'adm-zip'] }
+const bundleWorkspace = { exclude: ['@openappstore/sdk', '@openappstore/tool-host', 'adm-zip'] }
 
 export default defineConfig({
   main: {

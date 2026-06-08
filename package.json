@@ -1,5 +1,5 @@
 {
-  "name": "alberts-toolbox",
+  "name": "open-app-store",
   "version": "0.2.1",
   "private": true,
   "description": "Open-source Electron toolbox: a shell that hosts independent web-based tools, each sandboxed, with a capability broker and a git-based marketplace.",
@@ -9,14 +9,14 @@
     "node": ">=20"
   },
   "scripts": {
-    "dev": "turbo run dev --filter=@toolbox/shell...",
-    "dev:presenter": "turbo run dev --filter=@toolbox/tool-presenter",
+    "dev": "turbo run dev --filter=@openappstore/desktop...",
+    "dev:presenter": "turbo run dev --filter=@openappstore/presenter",
     "build": "turbo run build",
     "build:tools": "turbo run build --filter=./apps/tools/*",
     "lint": "turbo run lint",
     "typecheck": "turbo run typecheck",
-    "shell": "pnpm --filter @toolbox/shell start",
-    "package": "pnpm --filter @toolbox/shell package"
+    "shell": "pnpm --filter @openappstore/desktop start",
+    "package": "pnpm --filter @openappstore/desktop package"
   },
   "devDependencies": {
     "turbo": "^2.3.3",

@@ -1,7 +1,7 @@
 import { BrowserWindow, WebContentsView, app, shell } from 'electron'
 import { readFileSync } from 'node:fs'
 import { join } from 'node:path'
-import { loadToolsFromDir, type LoadedTool } from '@toolbox/tool-host'
+import { loadToolsFromDir, type LoadedTool } from '@openappstore/tool-host'
 import type { TabsState, ToolStatus, ToolSummary } from '../shared/types.js'
 import { builtinToolsDir, installedToolsDir } from './paths.js'
 import { registerToolView, unregisterToolView } from './broker.js'

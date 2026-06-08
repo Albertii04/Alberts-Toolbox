@@ -14,7 +14,7 @@ import {
   Boxes,
   PackageOpen,
 } from 'lucide-vue-next'
-import type { ToolManifest } from '@toolbox/sdk'
+import type { ToolManifest } from '@openappstore/sdk'
 import type {
   InstallProgress,
   InstalledApp,

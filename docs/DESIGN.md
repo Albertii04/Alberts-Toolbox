@@ -166,7 +166,7 @@ binary — and surfaces the command to the user before running it.
   Sandboxed preloads must be emitted as CommonJS.
 - Tools are loaded as **built artifacts** (`file://` to `dist/index.html`) — a
   tool's Vite `base` must be `./` so assets resolve under `file://`.
-- `pnpm --filter @toolbox/shell package` → electron-builder produces
+- `pnpm --filter @openappstore/desktop package` → electron-builder produces
   dmg/zip/nsis/AppImage; builtin tools ship via `extraResources`.
 
 ## Gitflow & CI

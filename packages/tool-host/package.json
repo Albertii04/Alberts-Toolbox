@@ -1,5 +1,5 @@
 {
-  "name": "@toolbox/tool-host",
+  "name": "@openappstore/tool-host",
   "version": "0.1.0",
   "description": "Node-side tool registry: scans tool folders, validates manifests, resolves entry paths.",
   "license": "MIT",
@@ -19,7 +19,7 @@
     "lint": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@toolbox/sdk": "workspace:*"
+    "@openappstore/sdk": "workspace:*"
   },
   "devDependencies": {
     "@types/node": "^20.11.0",

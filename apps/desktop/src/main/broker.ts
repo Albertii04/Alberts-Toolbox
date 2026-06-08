@@ -8,7 +8,7 @@ import {
   netAllowlist,
   type CapabilityName,
   type ToolManifest,
-} from '@toolbox/sdk'
+} from '@openappstore/sdk'
 import { toolStorage } from './storage.js'
 import {
   setSourcePath,

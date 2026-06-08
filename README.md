@@ -46,8 +46,8 @@ hosting + app creation, in one place.
 
 ```
 apps/shell              Electron shell (main + preload + Vue renderer)
-packages/sdk            @toolbox/sdk — manifest schema, capabilities, window.toolbox typings
-packages/tool-host      @toolbox/tool-host — node-side app registry
+packages/sdk            @openappstore/sdk — manifest schema, capabilities, window.toolbox typings
+packages/tool-host      @openappstore/tool-host — node-side app registry
 tools/presenter         the AI presentation builder, first `web` app
 templates/tool-starter  copy-to-start minimal web app (build-free)
 registry/index.json     catalog (stub of the future public registry)
@@ -83,7 +83,7 @@ Every catalog entry is an **app** whose manifest declares an install `kind`:
 ## Package desktop binaries
 
 ```bash
-pnpm --filter @toolbox/shell package   # dmg / zip / nsis / AppImage
+pnpm --filter @openappstore/desktop package   # dmg / zip / nsis / AppImage
 ```
 
 Or tag a release (`v0.1.0`) on `main` and CI builds all platforms — see
