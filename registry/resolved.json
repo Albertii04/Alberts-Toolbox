@@ -1,6 +1,6 @@
 {
   "version": 1,
-  "generatedAt": "2026-06-08T09:41:39.212Z",
+  "generatedAt": "2026-06-08T09:45:10.960Z",
   "apps": [
     {
       "id": "albert.presenter",
@@ -20,7 +20,7 @@
         "repo": "https://github.com/Albertii04/open-app-store"
       },
       "resolvedFrom": "manual",
-      "resolvedAt": "2026-06-08T09:41:36.767Z"
+      "resolvedAt": "2026-06-08T09:45:08.602Z"
     },
     {
       "id": "org.gimp",
@@ -43,7 +43,7 @@
         "repo": "https://gitlab.gnome.org/GNOME/gimp"
       },
       "resolvedFrom": "manual",
-      "resolvedAt": "2026-06-08T09:41:36.770Z"
+      "resolvedAt": "2026-06-08T09:45:08.606Z"
     },
     {
       "id": "org.localsend",
@@ -73,11 +73,11 @@
       },
       "metrics": {
         "repo": "https://github.com/localsend/localsend",
-        "stars": 82998,
+        "stars": 82999,
         "lastCommit": "2026-06-05T10:03:22Z"
       },
       "resolvedFrom": "localsend/localsend",
-      "resolvedAt": "2026-06-08T09:41:36.771Z",
+      "resolvedAt": "2026-06-08T09:45:08.607Z",
       "notes": "### Summary\r\n\r\nA small interim release before WebRTC is stable (https://github.com/localsend/localsend/pull/2204)\r\n\r\n- feat: add advanced setting to filter network interfaces (@Tienisto)\r\n- feat(mobile): swipe gesture to select multiple media files (@Tienisto)\r\n- feat(windows): when pasting an image, automatically convert it to PNG (@BrianMwit)\r\n- feat(android): add option to open gallery when image/video was automatically saved (@Tienisto)\r\n- fix: path traversal vulnerability when saving files (@Tienisto)\r\n- fix: black screen when tapping on \"Back\" twice in \"Share via link\" (@Tienisto)\r\n- fix(macos): window disappears on command key when minimize to tray is enabled (@Tienisto)\r\n- fix(windows): do not poll local IP resulting in unwanted location permissions (@Tienisto)\r\n\r\n[Full Changelog](https://github.com/localsend/localsend/blob/main/app/assets/CHANGELOG.md)\r\n",
       "images": [
         "https://localsend.org/img/sponsors/tesmu.svg",
@@ -120,7 +120,7 @@
         "lastCommit": "2026-06-05T13:24:20Z"
       },
       "resolvedFrom": "jgraph/drawio-desktop",
-      "resolvedAt": "2026-06-08T09:41:37.665Z",
+      "resolvedAt": "2026-06-08T09:45:09.482Z",
       "notes": "## Releases Notes for 30.0.4\r\n[Windows Installer](https://github.com/jgraph/drawio-desktop/releases/download/v30.0.4/draw.io-30.0.4-windows-installer.exe)\r\n[Windows No Installer (zip)](https://github.com/jgraph/drawio-desktop/releases/download/v30.0.4/draw.io-30.0.4-windows.zip)\r\n[macOS - Universal](https://github.com/jgraph/drawio-desktop/releases/download/v30.0.4/draw.io-universal-30.0.4.dmg)\r\nLinux - [deb](https://github.com/jgraph/drawio-desktop/releases/download/v30.0.4/drawio-amd64-30.0.4.deb), [AppImage](https://github.com/jgraph/drawio-desktop/releases/download/v30.0.4/drawio-x86_64-30.0.4.AppImage) or [rpm](https://github.com/jgraph/drawio-desktop/releases/download/v30.0.4/drawio-x86_64-30.0.4.rpm)\r\n\r\nWindows intel x32 releases are marked -ia32-\r\n\r\n**ChangeLog:**\r\n\r\n- Uses electron 42.3.0\r\n- Updates to [draw.io core 30.0.4](https://github.com/jgraph/drawio/blob/v30.0.4/ChangeLog).",
       "images": [],
       "publishedAt": "2026-05-27T17:35:46Z"
@@ -157,7 +157,7 @@
         "lastCommit": "2026-06-08T09:35:00Z"
       },
       "resolvedFrom": "logseq/logseq",
-      "resolvedAt": "2026-06-08T09:41:38.477Z",
+      "resolvedAt": "2026-06-08T09:45:10.200Z",
       "notes": "- ## Beta 0.10.15 [[Dec 1st, 2025]]\r\n  Desktop app and Android App download link: https://github.com/logseq/logseq/releases/tag/0.10.15  \r\n\t- [[Fixed issues]]\r\n\t\t- Fix: Youtube embeds not working\r\n\t- [[Enhancement]]\r\n\t\t- Bump Electron to 38.4.0",
       "images": [
         "https://user-images.githubusercontent.com/25513724/221387376-4dc419c2-0d0a-460c-a920-2d211e78b456.gif",
