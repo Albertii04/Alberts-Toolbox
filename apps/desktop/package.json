@@ -1,6 +1,6 @@
 {
   "name": "@openappstore/desktop",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "Electron shell that hosts sandboxed web tools with a capability broker.",
   "license": "MIT",
   "type": "module",
