@@ -33,18 +33,16 @@ jobs:
       - name: Build workspace
         run: pnpm build
 
-      - name: Package Electron app
-        run: pnpm --filter @toolbox/shell package
+      # electron-builder packages AND publishes to the GitHub Release (binaries
+      # + latest*.yml auto-update metadata). On macOS it signs with the Developer
+      # ID and notarizes; CSC_LINK is left empty on win/linux so they build
+      # unsigned. Apple secrets are only consumed by the mac notarize step.
+      - name: Package + publish
+        run: pnpm --filter @toolbox/shell exec electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Attach binaries to release
-        uses: softprops/action-gh-release@v3
-        with:
-          files: |
-            apps/shell/release/*.dmg
-            apps/shell/release/*.zip
-            apps/shell/release/*.exe
-            apps/shell/release/*.AppImage
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          CSC_LINK: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_LINK || '' }}
+          CSC_KEY_PASSWORD: ${{ matrix.os == 'macos-latest' && secrets.MAC_CSC_KEY_PASSWORD || '' }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
