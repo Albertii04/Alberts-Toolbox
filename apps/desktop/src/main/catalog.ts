@@ -37,8 +37,11 @@ function fetchJson(url: string): Promise<unknown> {
 }
 
 export async function getCatalog(): Promise<ResolvedApp[]> {
-  // dev: a locally-resolved catalog (run scripts/resolve-catalog.mjs) wins.
-  if (!app.isPackaged) {
+  // Single source of truth: both the desktop app and the web preview fetch the
+  // SAME published catalog (RESOLVED_CATALOG_URL). Opt-in dev override only:
+  // set OAS_LOCAL_CATALOG to iterate against a locally-generated resolved.json
+  // (run scripts/resolve-catalog.mjs) without waiting for CI to publish.
+  if (process.env.OAS_LOCAL_CATALOG && !app.isPackaged) {
     try {
       const local = resolve(app.getAppPath(), '../../registry/resolved.json')
       const raw = await readFile(local, 'utf8')
